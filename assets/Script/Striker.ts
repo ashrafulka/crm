@@ -33,7 +33,7 @@ export default class Striker extends cc.Component {
     onKeyDown(event){
         switch(event.keyCode){
             case cc.KEY.space:
-                this.strickerBody.setPositionX(this.midPos.position.x);
+                this.strickerBody.x = this.midPos.position.x;
                 this.strickerBody.getComponent(cc.RigidBody).applyLinearImpulse(new cc.Vec2(0,3000), cc.Vec2.ZERO, true);
                 break;
             default:
@@ -47,7 +47,6 @@ export default class Striker extends cc.Component {
     }
 
     OnSlide(progress:number){
-        console.log("getting position x " + this.strickerBody.getPositionX());
-        this.strickerBody.setPositionX(this.mFullSpanX * progress - Math.abs(this.rightBoundary.getPositionX()));
+        this.strickerBody.x = this.mFullSpanX * progress - Math.abs(this.rightBoundary.x);
     }
 }
