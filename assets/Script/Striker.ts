@@ -16,34 +16,34 @@ export default class Striker extends cc.Component {
     @property(cc.Node)
     strickerBody: cc.Node = null;
 
+    mStrikerRigidBody:cc.RigidBody = null;
+
     private mFullSpanX:number = 0;
 
-
-    onLoad(){
+    onLoad() {
         cc.director.getPhysicsManager().enabled = true;
         cc.director.getCollisionManager().enabled = true;
 
-        cc.systemEvent.on(cc.SystemEvent.EventType.KEY_DOWN, this.onKeyDown, this);
+        this.mStrikerRigidBody = this.strickerBody.getComponent(cc.RigidBody);
     }
 
     start () {
         this.mFullSpanX = Math.abs(this.midPos.position.x - this.rightBoundary.position.x) * 2;
     }
 
-    onKeyDown(event){
-        switch(event.keyCode){
-            case cc.KEY.space:
-                this.strickerBody.x = this.midPos.position.x;
-                this.strickerBody.getComponent(cc.RigidBody).applyLinearImpulse(new cc.Vec2(0,3000), cc.Vec2.ZERO, true);
-                break;
-            default:
-                //console.log("DEFAULT KEY: " + event.keyCode);
-                break;
-        }
+    ApplyForce(forceVector:cc.Vec2, forceAmount:number){
+        this.strickerBody.getComponent(cc.RigidBody).applyForceToCenter( new cc.Vec2(forceVector.x * forceAmount, forceVector.y * forceAmount),true);
+    }
+
+    ResetStriker(){
+        this.strickerBody.position = this.midPos.position;
+        //this.strickerBody.getComponent(cc.RigidBody).applyLinearImpulse(new cc.Vec2(0,3000), cc.Vec2.ZERO, true);
+        this.mStrikerRigidBody.angularVelocity = 0;
+        this.mStrikerRigidBody.linearVelocity = cc.Vec2.ZERO;
     }
 
     onDisable(){
-        cc.systemEvent.off(cc.SystemEvent.EventType.KEY_DOWN, this.onKeyDown, this);
+        cc.systemEvent.off(cc.SystemEvent.EventType.KEY_DOWN, this.OnKeyDown, this);
     }
 
     OnSlide(progress:number){
