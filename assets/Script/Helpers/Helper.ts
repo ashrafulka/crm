@@ -11,6 +11,39 @@ export default class Helper {
     }
 
     static getDistance(fv:cc.Vec2, sv:cc.Vec2):number{
-        return Math.sqrt( fv.x*fv.x - sv.x*sv.x + fv.y*fv.y - sv.y*sv.y);
+        return Math.sqrt( Math.pow(fv.x - sv.x, 2) + Math.pow(fv.y-sv.y,2) );
+    }
+
+    static getAngle(u:cc.Vec2, v:cc.Vec2, isRadian=true):number{
+        let nu = u.normalize();
+        let nv = v.normalize();
+
+        let dotProduct = nu.x * nv.x + nu.y * nv.y;
+        let firstVectorLength = Math.sqrt( (nu.x * nu.x) + (nu.y * nu.y) );
+        let secondVectorLength = Math.sqrt( (nv.x * nv.x) + (nv.y * nv.y) );
+
+        let angle = Math.acos(dotProduct / (firstVectorLength * secondVectorLength));
+        if (isRadian){
+            return angle;
+        } else {
+            return cc.misc.radiansToDegrees(angle);
+        }
+    }
+
+    static getAngle360(u:cc.Vec2, v:cc.Vec2, isRadian=true):number{
+        let nu = u.normalize();
+        let nv = v.normalize();
+
+        //dot = x1*x2 + y1*y2      # dot product
+        //det = x1*y2 - y1*x2      # determinant
+
+        let dot = nu.x*nv.x + nu.y*nv.y;     // dot product
+        let det = nu.x*nv.y - nv.x*nu.y;     // determinant
+        let angle = Math.atan2(det, dot);  // atan2(y, x) or atan2(sin, cos)
+
+        if (isRadian)
+            return angle;
+        else 
+            return 180 - angle * 360 / (2*Math.PI);
     }
 }

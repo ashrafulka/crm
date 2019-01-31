@@ -20,9 +20,15 @@ export default class ControlManager extends cc.Component {
     @property(cc.Node)
     dummyNode:cc.Node = null;
 
+    @property
+    minDistanceRequired:number = 50;
+    @property
+    maxDistanceAllowed: number = 100;
+
     mStrikerStartPos:cc.Vec2 = cc.Vec2.ZERO;
 
     mIsTouchStarted:boolean = false;
+
 
     onLoad () {
         this.controlSlider.slideEvents.push(Helper.getEventHandler(this.node, "ControlManager", "OnSlide"));
@@ -52,23 +58,36 @@ export default class ControlManager extends cc.Component {
     }
 
     OnStrickerDrag(event:cc.Event.EventTouch) {
-        this.mIsTouchStarted = true;
         let touch = event.getTouches()[0];
-        this.dummyNode.setPosition(this.dummyNode.parent.convertToNodeSpaceAR(touch.getLocation()));
+        let clear = true;
+        let strikerCenter = this.striker.strickerBody.parent.convertToWorldSpaceAR(this.striker.strickerBody.getPosition())
+        let touchDistance = Helper.getDistance( strikerCenter, touch.getLocation() );
 
-        var clear = true;
-        this.gizmosComp.DrawControlCircle(this.striker.strickerBody.parent.convertToWorldSpaceAR(
-            this.striker.strickerBody.getPosition()), 100 , clear); //big circle
+        if (touchDistance > this.minDistanceRequired) {
+            this.mIsTouchStarted = true;
+            this.gizmosComp.DrawControlCircle(
+                strikerCenter,
+                touchDistance>this.maxDistanceAllowed ? this.maxDistanceAllowed : touchDistance,
+                clear 
+            );
+        } else {
+            this.gizmosComp.myGraphicsNode.clear();
+        }
+
         
-        clear = false;
-        this.gizmosComp.DrawControlCircle(
-            this.striker.strickerBody.parent.convertToWorldSpaceAR(this.striker.strickerBody.getPosition()), 25, clear); //static
-        
-        
-        this.gizmosComp.DrawControlCircle(touch.getLocation(), 10, clear); //touch end
+        let radius = touchDistance > this.maxDistanceAllowed ? this.maxDistanceAllowed : touchDistance;
+        let touchAngle = Helper.getAngle360( new cc.Vec2(1,0), touch.getStartLocation().sub(touch.getLocation()));
+        let touchPointOnCircle = new cc.Vec2(strikerCenter.x + radius * Math.cos(touchAngle), strikerCenter.y + radius * Math.sin(touchAngle));
+
+        clear = !this.mIsTouchStarted;
+        this.gizmosComp.DrawControlCircle(touchPointOnCircle, 25);
+        // this.gizmosComp.DrawControlCircle(
+        //     this.striker.strickerBody.parent.convertToWorldSpaceAR(this.striker.strickerBody.getPosition()), 25, clear); //static
+        // this.gizmosComp.DrawControlCircle(touch.getLocation(), 10, clear); //touch end
         this.gizmosComp.DrawControlLine(
             this.striker.strickerBody.parent.convertToWorldSpaceAR(this.striker.strickerBody.getPosition()),
             touch.getLocation(), clear);
+        
     }
 
     OnStrikerDragEnd(event:cc.Event.EventTouch){
@@ -79,6 +98,7 @@ export default class ControlManager extends cc.Component {
         let magnitude = Math.sqrt(forceVector.x * forceVector.x + forceVector.y * forceVector.y);
         this.striker.ApplyForce(forceVector,  magnitude);
 
+        this.gizmosComp.myGraphicsNode.clear();
         this.mIsTouchStarted = false;
     }
 
