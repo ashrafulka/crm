@@ -21,19 +21,21 @@ export default class ControlManager extends cc.Component {
     dummyNode:cc.Node = null;
 
     @property
-    minDistanceRequired:number = 50;
+    minDistanceRequired:number = 0;
     @property
-    maxDistanceAllowed: number = 100;
+    maxDistanceAllowed: number = 0;
+    @property
+    fixForceAmount:number = 0;
 
     mStrikerStartPos:cc.Vec2 = cc.Vec2.ZERO;
-
     mIsTouchStarted:boolean = false;
-
+    mStrikerCenter:cc.Vec2 = cc.Vec2.ZERO;
 
     onLoad () {
         this.controlSlider.slideEvents.push(Helper.getEventHandler(this.node, "ControlManager", "OnSlide"));
         cc.systemEvent.on(cc.SystemEvent.EventType.KEY_DOWN, this.OnKeyDown, this);
 
+        this.striker.strickerBody.on(cc.Node.EventType.TOUCH_START, this.OnStrickerTouchStart.bind(this));
         this.striker.strickerBody.on(cc.Node.EventType.TOUCH_MOVE, this.OnStrickerDrag.bind(this));
         this.striker.strickerBody.on(cc.Node.EventType.TOUCH_END, this.OnStrikerDragEnd.bind(this));
         this.striker.strickerBody.on(cc.Node.EventType.TOUCH_CANCEL, this.OnStrikerDragEnd.bind(this));
@@ -42,6 +44,8 @@ export default class ControlManager extends cc.Component {
 
     OnStrickerTouchStart(event:cc.Event.EventTouch){
         this.mStrikerStartPos = event.getTouches()[0].getLocation();
+        this.mStrikerCenter = this.striker.strickerBody.parent.convertToWorldSpaceAR(this.striker.strickerBody.getPosition());
+        this.controlSlider.enabled = false;
     }
 
     OnKeyDown(event) {
@@ -60,46 +64,37 @@ export default class ControlManager extends cc.Component {
     OnStrickerDrag(event:cc.Event.EventTouch) {
         let touch = event.getTouches()[0];
         let clear = true;
-        let strikerCenter = this.striker.strickerBody.parent.convertToWorldSpaceAR(this.striker.strickerBody.getPosition())
-        let touchDistance = Helper.getDistance( strikerCenter, touch.getLocation() );
-
+        let touchDistance = Helper.getDistance( this.mStrikerCenter, touch.getLocation() );
+        let touchRadius = touchDistance>this.maxDistanceAllowed ? this.maxDistanceAllowed : touchDistance;
         if (touchDistance > this.minDistanceRequired) {
             this.mIsTouchStarted = true;
-            this.gizmosComp.DrawControlCircle(
-                strikerCenter,
-                touchDistance>this.maxDistanceAllowed ? this.maxDistanceAllowed : touchDistance,
-                clear 
-            );
+            this.gizmosComp.DrawControlCircle ( this.mStrikerCenter, touchRadius, clear  );
         } else {
+            this.mIsTouchStarted = false;
             this.gizmosComp.myGraphicsNode.clear();
+            return;
         }
 
-        
-        let radius = touchDistance > this.maxDistanceAllowed ? this.maxDistanceAllowed : touchDistance;
-        let touchAngle = Helper.getAngle360( new cc.Vec2(1,0), touch.getStartLocation().sub(touch.getLocation()));
-        let touchPointOnCircle = new cc.Vec2(strikerCenter.x + radius * Math.cos(touchAngle), strikerCenter.y + radius * Math.sin(touchAngle));
-
+        let touchPointOnCircle = Helper.getTouchPointOnCirlce(this.mStrikerCenter, touchRadius, touch.getLocation());
         clear = !this.mIsTouchStarted;
-        this.gizmosComp.DrawControlCircle(touchPointOnCircle, 25);
-        // this.gizmosComp.DrawControlCircle(
-        //     this.striker.strickerBody.parent.convertToWorldSpaceAR(this.striker.strickerBody.getPosition()), 25, clear); //static
-        // this.gizmosComp.DrawControlCircle(touch.getLocation(), 10, clear); //touch end
-        this.gizmosComp.DrawControlLine(
-            this.striker.strickerBody.parent.convertToWorldSpaceAR(this.striker.strickerBody.getPosition()),
-            touch.getLocation(), clear);
-        
+        this.gizmosComp.DrawControlCircle( touchPointOnCircle, 10, clear );
+        this.gizmosComp.DrawControlLine( this.mStrikerCenter, touch.getLocation(), clear);   
     }
 
     OnStrikerDragEnd(event:cc.Event.EventTouch){
         if (this.mIsTouchStarted == false) return;
 
         let touch = event.getTouches()[0];
-        let forceVector = touch.getStartLocation().sub(touch.getLocation());
-        let magnitude = Math.sqrt(forceVector.x * forceVector.x + forceVector.y * forceVector.y);
-        this.striker.ApplyForce(forceVector,  magnitude);
+        let radius = Helper.getDistance(this.mStrikerCenter, touch.getLocation());
+        radius = radius > this.maxDistanceAllowed ? this.maxDistanceAllowed : radius;
+        let forceVector = this.mStrikerCenter.sub(Helper.getTouchPointOnCirlce(this.mStrikerCenter, radius, touch.getLocation())); 
+        let magnitude = forceVector.mag();
+
+        this.striker.ApplyForce(new cc.Vec2(forceVector.x * -1, forceVector.y * -1),  magnitude * this.fixForceAmount);
 
         this.gizmosComp.myGraphicsNode.clear();
         this.mIsTouchStarted = false;
+        this.controlSlider.enabled = true;
     }
 
     OnSlide() {

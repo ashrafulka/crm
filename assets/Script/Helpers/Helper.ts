@@ -14,6 +14,11 @@ export default class Helper {
         return Math.sqrt( Math.pow(fv.x - sv.x, 2) + Math.pow(fv.y-sv.y,2) );
     }
 
+    static getTouchPointOnCirlce(center:cc.Vec2, radius:number, touchPoint:cc.Vec2 ):cc.Vec2{
+        let touchAngle = Helper.getAngle360( new cc.Vec2(1,0), center.sub(touchPoint));
+        return new cc.Vec2(center.x + radius * Math.cos(touchAngle), center.y + radius * Math.sin(touchAngle));
+    }
+
     static getAngle(u:cc.Vec2, v:cc.Vec2, isRadian=true):number{
         let nu = u.normalize();
         let nv = v.normalize();

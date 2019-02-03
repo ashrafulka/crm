@@ -5,9 +5,6 @@ const {ccclass, property} = cc._decorator;
 export default class Striker extends cc.Component {
 
     @property(cc.Node)
-    leftBoundary:cc.Node = null;
-
-    @property(cc.Node)
     rightBoundary:cc.Node = null;
 
     @property(cc.Node)
@@ -40,10 +37,6 @@ export default class Striker extends cc.Component {
         //this.strickerBody.getComponent(cc.RigidBody).applyLinearImpulse(new cc.Vec2(0,3000), cc.Vec2.ZERO, true);
         this.mStrikerRigidBody.angularVelocity = 0;
         this.mStrikerRigidBody.linearVelocity = cc.Vec2.ZERO;
-    }
-
-    onDisable(){
-        cc.systemEvent.off(cc.SystemEvent.EventType.KEY_DOWN, this.OnKeyDown, this);
     }
 
     OnSlide(progress:number){
