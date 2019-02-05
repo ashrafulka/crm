@@ -34,4 +34,11 @@ export default class Pawn extends cc.Component {
             break;
         }
     }
+
+    deactiveAfter(duration:number){
+        var self = this;
+        this.scheduleOnce(function(){
+            self.node.active = false;
+        },duration);
+    }
 }

@@ -18,9 +18,6 @@ export default class Striker extends cc.Component {
     private mFullSpanX:number = 0;
 
     onLoad() {
-        cc.director.getPhysicsManager().enabled = true;
-        cc.director.getCollisionManager().enabled = true;
-
         this.mStrikerRigidBody = this.strickerBody.getComponent(cc.RigidBody);
     }
 

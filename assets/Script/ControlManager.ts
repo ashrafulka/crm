@@ -32,6 +32,11 @@ export default class ControlManager extends cc.Component {
     mStrikerCenter:cc.Vec2 = cc.Vec2.ZERO;
 
     onLoad () {
+        cc.director.getPhysicsManager().enabled = true;
+        cc.director.getCollisionManager().enabled = true;
+        //cc.director.getCollisionManager().enabledDebugDraw = true;
+        //cc.director.getCollisionManager().enabledDrawBoundingBox = true;
+
         this.controlSlider.slideEvents.push(Helper.getEventHandler(this.node, "ControlManager", "OnSlide"));
         cc.systemEvent.on(cc.SystemEvent.EventType.KEY_DOWN, this.OnKeyDown, this);
 
@@ -42,7 +47,7 @@ export default class ControlManager extends cc.Component {
 
     }//onLoad
 
-    OnStrickerTouchStart(event:cc.Event.EventTouch){
+    OnStrickerTouchStart(event:cc.Event.EventTouch) {
         this.mStrikerStartPos = event.getTouches()[0].getLocation();
         this.mStrikerCenter = this.striker.strickerBody.parent.convertToWorldSpaceAR(this.striker.strickerBody.getPosition());
         this.controlSlider.enabled = false;
@@ -56,7 +61,6 @@ export default class ControlManager extends cc.Component {
                 this.striker.ResetStriker();
                 break;
             default:
-                //console.log("DEFAULT KEY: " + event.keyCode);
                 break;
         }
     }
@@ -81,7 +85,7 @@ export default class ControlManager extends cc.Component {
         this.gizmosComp.DrawControlLine( this.mStrikerCenter, touch.getLocation(), clear);   
     }
 
-    OnStrikerDragEnd(event:cc.Event.EventTouch){
+    OnStrikerDragEnd(event:cc.Event.EventTouch) {
         if (this.mIsTouchStarted == false) return;
 
         let touch = event.getTouches()[0];
