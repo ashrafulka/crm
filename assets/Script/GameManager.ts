@@ -1,18 +1,20 @@
 import BoardManager, { GAME_TYPE } from "./BoardManager";
+import Pawn from "./Pawn";
 
-const {ccclass, property} = cc._decorator;
+const { ccclass, property } = cc._decorator;
 
 @ccclass
 export default class GameManager extends cc.Component {
 
-    mBoardManager:BoardManager = null;
+    mBoardManager: BoardManager = null;
 
-    start () {
+    start() {
         this.mBoardManager = this.getComponent(BoardManager);
-        
-        this.mBoardManager.initialize(GAME_TYPE.CARROM); // TODO , will come from lobby
+
     }//start
 
 
+    registerPot(pawn: Pawn) {
 
+    }
 }
