@@ -1,5 +1,5 @@
 import Pawn from "./Pawn";
-import BoardManager from "./BoardManager";
+import BoardManager from "./Managers/BoardManager";
 
 const { ccclass, property } = cc._decorator;
 

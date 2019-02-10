@@ -1,4 +1,5 @@
-import Pawn, { PawnType } from "./Pawn";
+import Pawn, { PawnType } from "./../Pawn";
+import { Player } from "../Player";
 
 const { ccclass, property } = cc._decorator;
 
@@ -20,6 +21,7 @@ export default class BoardManager extends cc.Component {
     pawnPrefab: cc.Prefab = null;
 
     mCurrentPawnPool: Array<Pawn> = [];
+    mCurrentPlayerPool: Array<Player> = [];
 
     start() {
         this.mCurrentPawnPool.length = 0; //reset
@@ -38,6 +40,18 @@ export default class BoardManager extends cc.Component {
         }
     }
 
+    initializePlayers() {
+        //coming from server -> persistent object
+        this.mCurrentPlayerPool.length = 0;
+
+        this.mCurrentPlayerPool.push(new Player("player0", "Jashim"));
+        this.mCurrentPlayerPool.push(new Player("player1", "Kyle"));
+    }
+
+    applyTurn() {
+
+    }
+
     private initializeCarromBoard() {
         this.mCurrentPawnPool.length = 0;
         let pawnNode = cc.instantiate(this.pawnPrefab);
@@ -53,28 +67,32 @@ export default class BoardManager extends cc.Component {
 
         let currentHighestCol = 3;
         let currentType = 1;
-
+        let toggleThreshold = 0;
         for (let row = 0; row < 3; row++) {
             for (let col = 0; col < currentHighestCol; col++) {
-                if (!(row == 0 && col == 0)) {
+                if (row + col > 0) { //skipping first pawn, its already created
                     pawnNode = cc.instantiate(this.pawnPrefab);
                 }
                 pawnNode.setPosition(startPos);
                 this.addToPawnPool(pawnNode);
-
-                this.convertPawnTo(pawnNode, currentType);
-                currentType = this.togglePawnType(currentType);
+                this.convertPawnTo(pawnNode, (row == 2 && col == 2) ? 0 : currentType);
 
                 if (row != 2) { // adding counter pawn
                     pawnNode = cc.instantiate(this.pawnPrefab);
                     pawnNode.setPosition(new cc.Vec2(startPos.x, -startPos.y));
-                    this.addToPawnPool(pawnNode);
 
-                    this.convertPawnTo(pawnNode, this.togglePawnType(currentType));
+                    this.addToPawnPool(pawnNode);
+                    this.convertPawnTo(pawnNode, currentType);
                 }
 
+                if (toggleThreshold <= 0) {
+                    currentType = this.togglePawnType(currentType);
+                }
                 startPos.x += d;
+                toggleThreshold--;
             }
+
+            toggleThreshold = row + 1;
             startPos.x = -d - ((row + 1) * r);
             startPos.y -= (d - deltaY);
 
@@ -84,6 +102,8 @@ export default class BoardManager extends cc.Component {
                 break;
             }
         }
+
+        console.log("total pawns " + this.mCurrentPawnPool.length);
     }
 
     private togglePawnType(ct: number) {

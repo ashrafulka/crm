@@ -1,6 +1,6 @@
-import Striker from "./Striker";
-import Helper from "./Helpers/Helper";
-import GizmoGraphic from "./Helpers/GizmoGraphic";
+import Striker from "./../Striker";
+import Helper from "./../Helpers/Helper";
+import GizmoGraphic from "./../Helpers/GizmoGraphic";
 
 
 const { ccclass, property, executionOrder } = cc._decorator;
