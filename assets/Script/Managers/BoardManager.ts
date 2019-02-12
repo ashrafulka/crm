@@ -1,5 +1,6 @@
-import Pawn, { PawnType } from "./../Pawn";
+import PawnComponent, { PawnType } from "./../Pawn";
 import { Player } from "../Player";
+import Striker from "../Striker";
 
 const { ccclass, property } = cc._decorator;
 
@@ -12,6 +13,9 @@ export enum GAME_TYPE {
 export default class BoardManager extends cc.Component {
 
     @property(cc.Node)
+    boardBody: cc.Node = null;
+
+    @property(cc.Node)
     pawnHolder: cc.Node = null;
 
     @property(cc.Node)
@@ -20,39 +24,108 @@ export default class BoardManager extends cc.Component {
     @property(cc.Prefab)
     pawnPrefab: cc.Prefab = null;
 
-    mCurrentPawnPool: Array<Pawn> = [];
+    @property(Striker)
+    striker: Striker = null;
+
+    mCurrentPawnPool: Array<PawnComponent> = [];
     mCurrentPlayerPool: Array<Player> = [];
+
+    mCurrentTurnIndex: number = 0;
+    mPersonalIndex: number = 0;
+    mStrikerDistanceFromMid: number = 0;
+    //Flags
+    mIsGameOver: boolean = false;
+    mIsValidPotPending: boolean = false;
+
+    onLoad() {
+        this.mStrikerDistanceFromMid = Math.abs(this.striker.strickerBody.getPosition().y);
+    }
 
     start() {
         this.mCurrentPawnPool.length = 0; //reset
-        this.initialize(GAME_TYPE.CARROM); //it should be called from persistent component
+        this.Initialize(GAME_TYPE.CARROM); //it should be called from persistent component
+        this.InitializePlayers();
 
+        this.HandleNextTurn();
+        //this.mCurrentTurnIndex = 0; //TODO server?
     }
 
-    initialize(gameType: GAME_TYPE) {
+    Initialize(gameType: GAME_TYPE) {
         switch (gameType) {
             case GAME_TYPE.CARROM:
-                this.initializeCarromBoard();
+                this.InitializeCarromBoard();
                 break;
             case GAME_TYPE.RANDOM:
-                this.initializeRandomBoard();
+                //this.initializeRandomBoard();
                 break;
         }
     }
 
-    initializePlayers() {
+    InitializePlayers() {
         //coming from server -> persistent object
         this.mCurrentPlayerPool.length = 0;
 
-        this.mCurrentPlayerPool.push(new Player("player0", "Jashim"));
+        this.mCurrentPlayerPool.push(new Player("player0", "James"));
         this.mCurrentPlayerPool.push(new Player("player1", "Kyle"));
+
+        this.mPersonalIndex = 1; //TODO
+
+        switch (this.mPersonalIndex) {
+            case 1: // TOP player
+                this.boardBody.angle = 180;
+                break;
+            case 0:
+                this.boardBody.angle = 0;
+                break;
+            default:
+                break;
+        }
     }
 
-    applyTurn() {
+    HandleNextTurn() {
+        //check if game over
+        if (this.mIsGameOver) {
+            this.ProcessGameOver();
+            return;
+        }
+        //hand over current turn
+        this.striker.ResetStriker();
+        this.ApplyTurn();
+    }
+
+    ApplyTurn() {
+        if (this.mIsValidPotPending == false) {
+            this.mCurrentTurnIndex = ((this.mCurrentTurnIndex + 1) % this.mCurrentPlayerPool.length);
+        }
+
+        this.mIsValidPotPending = false; // release
+        //TODO,save red
+        //update striker pos
+        this.UpdateStrikerPos();
+        //update ui
+        this.UpdateUIPosition();
+    }
+
+    private UpdateStrikerPos() {
+        switch (this.mCurrentTurnIndex) {
+            case 1: // TOP Player
+                this.striker.strickerBody.setPosition(0, this.mStrikerDistanceFromMid);
+                break;
+            case 0:
+                this.striker.strickerBody.setPosition(0, -this.mStrikerDistanceFromMid);
+                break;
+        }
+    }
+
+    private UpdateUIPosition() {
+        //TODO
+    }
+
+    private ProcessGameOver() {
 
     }
 
-    private initializeCarromBoard() {
+    private InitializeCarromBoard() {
         this.mCurrentPawnPool.length = 0;
         let pawnNode = cc.instantiate(this.pawnPrefab);
         let r = pawnNode.getComponent(cc.CircleCollider).radius;
@@ -68,25 +141,28 @@ export default class BoardManager extends cc.Component {
         let currentHighestCol = 3;
         let currentType = 1;
         let toggleThreshold = 0;
+        let idCounter = -1;
         for (let row = 0; row < 3; row++) {
             for (let col = 0; col < currentHighestCol; col++) {
+
+                idCounter++;
                 if (row + col > 0) { //skipping first pawn, its already created
                     pawnNode = cc.instantiate(this.pawnPrefab);
                 }
                 pawnNode.setPosition(startPos);
-                this.addToPawnPool(pawnNode);
-                this.convertPawnTo(pawnNode, (row == 2 && col == 2) ? 0 : currentType);
+                this.AddToPawnPool(pawnNode, idCounter);
+                this.ConvertPawnTo(pawnNode, (row == 2 && col == 2) ? 0 : currentType);
 
                 if (row != 2) { // adding counter pawn
                     pawnNode = cc.instantiate(this.pawnPrefab);
                     pawnNode.setPosition(new cc.Vec2(startPos.x, -startPos.y));
 
-                    this.addToPawnPool(pawnNode);
-                    this.convertPawnTo(pawnNode, currentType);
+                    this.AddToPawnPool(pawnNode, idCounter);
+                    this.ConvertPawnTo(pawnNode, currentType);
                 }
 
                 if (toggleThreshold <= 0) {
-                    currentType = this.togglePawnType(currentType);
+                    currentType = this.TogglePawnType(currentType);
                 }
                 startPos.x += d;
                 toggleThreshold--;
@@ -102,11 +178,9 @@ export default class BoardManager extends cc.Component {
                 break;
             }
         }
-
-        console.log("total pawns " + this.mCurrentPawnPool.length);
     }
 
-    private togglePawnType(ct: number) {
+    private TogglePawnType(ct: number) {
         if (ct == 1) {
             return 2;
         } else if (ct == 2) {
@@ -115,33 +189,35 @@ export default class BoardManager extends cc.Component {
         return 0;
     }
 
-    private addToPawnPool(pawn: cc.Node) {
-        let pawnComp = pawn.getComponent(Pawn);
+    private AddToPawnPool(pawn: cc.Node, id: number) {
+        let pawnComp = pawn.getComponent(PawnComponent);
         this.mCurrentPawnPool.push(pawnComp);
+        pawnComp.SetId(id);
         pawn.setParent(this.pawnHolder);
     }
 
-    private convertPawnTo(pn: cc.Node, pt: number) {
-        let pawn = pn.getComponent(Pawn);
+    private ConvertPawnTo(pn: cc.Node, pt: number) {
+        let pawn = pn.getComponent(PawnComponent);
         switch (pt) {
             case 0:
-                pawn.convert(PawnType.RED);
+                pawn.Convert(PawnType.RED);
                 break;
             case 1:
-                pawn.convert(PawnType.BLACK);
+                pawn.Convert(PawnType.BLACK);
                 break;
             case 2:
-                pawn.convert(PawnType.WHITE);
+                pawn.Convert(PawnType.WHITE);
                 break;
         }
     }
 
-    private initializeRandomBoard() {
-        console.log("initializing Random board");
+    RegisterPot(pawn: PawnComponent) {
+        if (pawn.GetId() < 0) {
+            return;
+        }
 
-    }
-
-    registerPot(pawn: Pawn) {
+        this.mIsValidPotPending = true;
+        console.log("pawn pot" + pawn.GetId() + ", player : " + this.mCurrentTurnIndex);
 
     }//registerPot
 }

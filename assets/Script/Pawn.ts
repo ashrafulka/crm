@@ -1,13 +1,16 @@
+import { Player } from "./Player";
+
 export enum PawnType {
     RED = 0,
     BLACK = 1,
     WHITE = 2
 }
 
+
 const { ccclass, property } = cc._decorator;
 
 @ccclass
-export default class Pawn extends cc.Component {
+export default class PawnComponent extends cc.Component {
 
     @property({ type: cc.Enum(PawnType) })
     pawnType: PawnType = PawnType.BLACK;
@@ -21,8 +24,23 @@ export default class Pawn extends cc.Component {
     @property(cc.SpriteFrame)
     whiteSpriteFrame: cc.SpriteFrame = null;
 
-    start() {
-        //this.init(this.pawnType);
+    mId: number = -1;
+    mPotPlayer: Player = null;
+
+    SetId(id: number) {
+        this.mId = id;
+    }
+
+    GetId(): number {
+        return this.mId;
+    }
+
+    GetPotPlayer(): Player {
+        return this.mPotPlayer;
+    }
+
+    SetPotPlayer(player: Player) {
+        this.mPotPlayer = player;
     }
 
     init(pawnType: PawnType) {
@@ -39,12 +57,12 @@ export default class Pawn extends cc.Component {
         }
     }
 
-    convert(pawnType: PawnType) {
+    Convert(pawnType: PawnType) {
         this.pawnType = pawnType;
         this.init(this.pawnType);
     }
 
-    deactiveAfter(duration: number) {
+    DeactiveAfter(duration: number) {
         var self = this;
         this.scheduleOnce(function () {
             self.node.active = false;

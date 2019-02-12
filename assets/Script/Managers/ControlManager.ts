@@ -1,6 +1,8 @@
 import Striker from "./../Striker";
 import Helper from "./../Helpers/Helper";
 import GizmoGraphic from "./../Helpers/GizmoGraphic";
+import { Player } from "../Player";
+import BoardManager from "./BoardManager";
 
 
 const { ccclass, property, executionOrder } = cc._decorator;
@@ -31,6 +33,11 @@ export default class ControlManager extends cc.Component {
     mIsTouchStarted: boolean = false;
     mStrikerCenter: cc.Vec2 = cc.Vec2.ZERO;
 
+    mCurrentTurnIndex: number = -1;
+    mPlayerPool: Player[] = null;
+
+    mBoardManager: BoardManager = null;
+
     onLoad() {
         cc.director.getPhysicsManager().enabled = true;
         cc.director.getCollisionManager().enabled = true;
@@ -42,8 +49,11 @@ export default class ControlManager extends cc.Component {
         this.striker.strickerBody.on(cc.Node.EventType.TOUCH_MOVE, this.OnStrickerDrag.bind(this));
         this.striker.strickerBody.on(cc.Node.EventType.TOUCH_END, this.OnStrikerDragEnd.bind(this));
         this.striker.strickerBody.on(cc.Node.EventType.TOUCH_CANCEL, this.OnStrikerDragEnd.bind(this));
-
     }//onLoad
+
+    start() {
+        this.mBoardManager = this.getComponent(BoardManager);
+    }
 
     OnStrickerTouchStart(event: cc.Event.EventTouch) {
         this.mStrikerStartPos = event.getTouches()[0].getLocation();
@@ -54,16 +64,20 @@ export default class ControlManager extends cc.Component {
     OnKeyDown(event) {
         switch (event.keyCode) {
             case cc.macro.KEY.space:
-                this.controlSlider.progress = 0.5;
-                this.gizmosComp.myGraphicsNode.clear();
-                this.striker.ResetStriker();
+                //this.controlSlider.progress = 0.5;
+                //this.gizmosComp.myGraphicsNode.clear();
+                //this.striker.ResetStriker();
+                //this.mBoardManager.HandleNextTurn();
                 break;
+            case cc.macro.KEY.a:
+                this.mBoardManager.HandleNextTurn();
             default:
                 break;
         }
     }
 
     OnStrickerDrag(event: cc.Event.EventTouch) {
+        //see if the striker is in a valid position first
         let touch = event.getTouches()[0];
         let clear = true;
         let touchDistance = Helper.getDistance(this.mStrikerCenter, touch.getLocation());
