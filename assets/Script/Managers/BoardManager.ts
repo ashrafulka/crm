@@ -27,12 +27,21 @@ export default class BoardManager extends cc.Component {
     @property(Striker)
     striker: Striker = null;
 
-    mCurrentPawnPool: Array<PawnComponent> = [];
-    mCurrentPlayerPool: Array<Player> = [];
+    @property(cc.Label)
+    scoreLabels: Array<cc.Label> = [];
+
+    mAllPawnPool: Array<PawnComponent> = [];
+    mPlayerPool: Array<Player> = [];
 
     mCurrentTurnIndex: number = 0;
     mPersonalIndex: number = 0;
     mStrikerDistanceFromMid: number = 0;
+    mTotalPawnsCount: number = 0;
+
+    mBlackPotCount: number = 0;
+    mWhitePotCount: number = 0;
+    MAX_PAWN_PER_TYPE_COUNT = 9;
+
     //Flags
     mIsGameOver: boolean = false;
     mIsValidPotPending: boolean = false;
@@ -42,12 +51,13 @@ export default class BoardManager extends cc.Component {
     }
 
     start() {
-        this.mCurrentPawnPool.length = 0; //reset
+        this.mAllPawnPool.length = 0; //reset
         this.Initialize(GAME_TYPE.CARROM); //it should be called from persistent component
         this.InitializePlayers();
 
-        this.HandleNextTurn();
-        //this.mCurrentTurnIndex = 0; //TODO server?
+        this.ApplyTurn();
+        this.mPlayerPool[this.mCurrentTurnIndex].SetType(PawnType.WHITE);
+        this.mPlayerPool[(this.mCurrentTurnIndex + 1) % this.mPlayerPool.length].SetType(PawnType.BLACK);
     }
 
     Initialize(gameType: GAME_TYPE) {
@@ -61,14 +71,27 @@ export default class BoardManager extends cc.Component {
         }
     }
 
+    IsStrikerMoving() {
+        if (!this.striker.mStrikerRigidBody) {
+            console.warn("couldnt find rigid body");
+            return false;
+        }
+
+        if (this.striker.mStrikerRigidBody.linearVelocity == cc.Vec2.ZERO) {
+            return false;
+        }
+
+        return true;
+    }
+
     InitializePlayers() {
         //coming from server -> persistent object
-        this.mCurrentPlayerPool.length = 0;
+        this.mPlayerPool.length = 0;
 
-        this.mCurrentPlayerPool.push(new Player("player0", "James"));
-        this.mCurrentPlayerPool.push(new Player("player1", "Kyle"));
+        this.mPlayerPool.push(new Player("player0", "James", 0));
+        this.mPlayerPool.push(new Player("player1", "Kyle", 1));
 
-        this.mPersonalIndex = 1; //TODO
+        this.mPersonalIndex = 0; //TODO
 
         switch (this.mPersonalIndex) {
             case 1: // TOP player
@@ -83,27 +106,25 @@ export default class BoardManager extends cc.Component {
     }
 
     HandleNextTurn() {
-        //check if game over
         if (this.mIsGameOver) {
-            this.ProcessGameOver();
             return;
         }
+        if (this.mIsValidPotPending == false) {
+            this.mCurrentTurnIndex = ((this.mCurrentTurnIndex + 1) % this.mPlayerPool.length);
+        }
+
         //hand over current turn
         this.striker.ResetStriker();
         this.ApplyTurn();
     }
 
-    ApplyTurn() {
-        if (this.mIsValidPotPending == false) {
-            this.mCurrentTurnIndex = ((this.mCurrentTurnIndex + 1) % this.mCurrentPlayerPool.length);
-        }
-
+    OnStrikerHit() {
         this.mIsValidPotPending = false; // release
-        //TODO,save red
+    }
+
+    private ApplyTurn() {
         //update striker pos
         this.UpdateStrikerPos();
-        //update ui
-        this.UpdateUIPosition();
     }
 
     private UpdateStrikerPos() {
@@ -117,16 +138,48 @@ export default class BoardManager extends cc.Component {
         }
     }
 
-    private UpdateUIPosition() {
-        //TODO
+    private IsBoardEmpty(): boolean {
+        return (this.mBlackPotCount == this.mWhitePotCount) && (this.mBlackPotCount == this.MAX_PAWN_PER_TYPE_COUNT);
     }
 
     private ProcessGameOver() {
+        this.mIsGameOver = true;
+        if (this.IsBoardEmpty()) { //TODO
+            //compare score
+            let winnerIndex = -1;
+            let currHighestScore = 0;
+            for (let i = 0; i < this.mPlayerPool.length; i++) {
+                if (this.mPlayerPool[i].GetScore() > currHighestScore) {
+                    currHighestScore = this.mPlayerPool[i].GetScore();
+                    winnerIndex = i;
+                }
+            }
 
+            console.log("WINNER :  " + this.mPlayerPool[winnerIndex].GetName());
+            return;
+        }
+
+        let winType = PawnType.NONE;
+        if (this.mBlackPotCount >= this.MAX_PAWN_PER_TYPE_COUNT) {
+            winType = PawnType.BLACK;
+        } else if (this.mWhitePotCount >= this.MAX_PAWN_PER_TYPE_COUNT) {
+            winType = PawnType.WHITE;
+        }
+
+        for (let i = 0; i < this.mPlayerPool.length; i++) {
+            if (this.mPlayerPool[i].GetCurrentPawnType() == winType) {
+                console.log("WINNER :  " + this.mPlayerPool[i].GetName());
+                break;
+            }
+        }
+    }
+
+    private UpdateScoreUI() {
+        this.scoreLabels[this.mCurrentTurnIndex].string = this.mPlayerPool[this.mCurrentTurnIndex].GetName() + " : " + this.mPlayerPool[this.mCurrentTurnIndex].GetScore();
     }
 
     private InitializeCarromBoard() {
-        this.mCurrentPawnPool.length = 0;
+        this.mAllPawnPool.length = 0;
         let pawnNode = cc.instantiate(this.pawnPrefab);
         let r = pawnNode.getComponent(cc.CircleCollider).radius;
         let d = r * 2;
@@ -144,7 +197,6 @@ export default class BoardManager extends cc.Component {
         let idCounter = -1;
         for (let row = 0; row < 3; row++) {
             for (let col = 0; col < currentHighestCol; col++) {
-
                 idCounter++;
                 if (row + col > 0) { //skipping first pawn, its already created
                     pawnNode = cc.instantiate(this.pawnPrefab);
@@ -177,7 +229,7 @@ export default class BoardManager extends cc.Component {
                 //this.pawnHolder.angle = 30; //doesnt matter because all pawns are rigid body
                 break;
             }
-        }
+        }//for
     }
 
     private TogglePawnType(ct: number) {
@@ -191,7 +243,7 @@ export default class BoardManager extends cc.Component {
 
     private AddToPawnPool(pawn: cc.Node, id: number) {
         let pawnComp = pawn.getComponent(PawnComponent);
-        this.mCurrentPawnPool.push(pawnComp);
+        this.mAllPawnPool.push(pawnComp);
         pawnComp.SetId(id);
         pawn.setParent(this.pawnHolder);
     }
@@ -216,8 +268,31 @@ export default class BoardManager extends cc.Component {
             return;
         }
 
-        this.mIsValidPotPending = true;
-        console.log("pawn pot" + pawn.GetId() + ", player : " + this.mCurrentTurnIndex);
+        let scoreToAdd = 1;
+        switch (pawn.GetPawnType()) {
+            case PawnType.RED:
+                scoreToAdd = 2;
+                break;
+            case PawnType.BLACK:
+                this.mBlackPotCount++;
+                break;
+            case PawnType.WHITE:
+                this.mWhitePotCount++;
+                break;
+        }
 
+        this.mPlayerPool[this.mCurrentTurnIndex].AddToScore(scoreToAdd);
+
+        this.mIsValidPotPending = true;
+        pawn.SetPotPlayer(this.mPlayerPool[this.mCurrentTurnIndex]);
+
+        this.UpdateScoreUI();
+
+        console.log("white left " + (this.MAX_PAWN_PER_TYPE_COUNT - this.mWhitePotCount));
+        console.log("black left " + (this.MAX_PAWN_PER_TYPE_COUNT - this.mBlackPotCount));
+        if (this.mWhitePotCount >= this.MAX_PAWN_PER_TYPE_COUNT || this.mBlackPotCount >= this.MAX_PAWN_PER_TYPE_COUNT) {
+            //process game over for white player
+            this.ProcessGameOver();
+        }
     }//registerPot
 }

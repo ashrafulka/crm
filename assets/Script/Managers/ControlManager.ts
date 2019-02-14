@@ -107,6 +107,7 @@ export default class ControlManager extends cc.Component {
         let magnitude = forceVector.mag();
 
         this.striker.ApplyForce(new cc.Vec2(forceVector.x * -1, forceVector.y * -1), magnitude * this.fixForceAmount);
+        this.mBoardManager.OnStrikerHit();
 
         this.gizmosComp.myGraphicsNode.clear();
         this.mIsTouchStarted = false;

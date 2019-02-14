@@ -1,6 +1,7 @@
 import { Player } from "./Player";
 
 export enum PawnType {
+    NONE = 99,
     RED = 0,
     BLACK = 1,
     WHITE = 2
@@ -26,6 +27,13 @@ export default class PawnComponent extends cc.Component {
 
     mId: number = -1;
     mPotPlayer: Player = null;
+    mIsPotted: boolean = false;
+    mRigidBody: cc.RigidBody = null;
+
+
+    onLoad() {
+        this.mRigidBody = this.getComponent(cc.RigidBody);
+    }
 
     SetId(id: number) {
         this.mId = id;
@@ -41,6 +49,13 @@ export default class PawnComponent extends cc.Component {
 
     SetPotPlayer(player: Player) {
         this.mPotPlayer = player;
+        this.mIsPotted = true;
+        this.mRigidBody.linearVelocity = cc.Vec2.ZERO;
+        this.mRigidBody.angularVelocity = 0;
+    }
+
+    GetPawnType(): PawnType {
+        return this.pawnType;
     }
 
     init(pawnType: PawnType) {
@@ -55,6 +70,10 @@ export default class PawnComponent extends cc.Component {
                 this.getComponent(cc.Sprite).spriteFrame = this.whiteSpriteFrame;
                 break;
         }
+    }
+
+    Reset() {
+        this.node.setPosition(cc.Vec2.ZERO);
     }
 
     Convert(pawnType: PawnType) {
