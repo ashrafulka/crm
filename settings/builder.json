@@ -1,18 +1,8 @@
 {
-  "android-instant": {
-    "REMOTE_SERVER_ROOT": "",
-    "host": "",
-    "pathPattern": "",
-    "recordPath": "",
-    "scheme": "https",
-    "skipRecord": false
-  },
   "appKey": "",
   "appSecret": "",
   "encryptJs": true,
-  "excludeScenes": [
-    "2d2f792f-a40c-49bb-a189-ed176a246e49"
-  ],
+  "excludeScenes": [],
   "fb-instant-games": {},
   "includeAnySDK": false,
   "includeSDKBox": false,
@@ -36,7 +26,7 @@
     "orientation": "portrait",
     "zip": false
   },
-  "startScene": "f26bb0ac-8c9e-4252-81df-f96d13aec33f",
+  "startScene": "f5af117c-8615-47d2-984d-8e4b17167994",
   "title": "Carrom",
   "webOrientation": "portrait",
   "wechatgame": {
@@ -46,5 +36,6 @@
     "subContext": ""
   },
   "xxteaKey": "be510eff-7085-4e",
-  "zipCompressJs": true
+  "zipCompressJs": true,
+  "renderMode": "0"
 }
