@@ -1,5 +1,7 @@
 import Helper from "../Helpers/Helper";
 import { Logger } from "./Logger";
+import { Connection } from "./Connection";
+import { Constants } from "./Constants";
 
 const { ccclass, property } = cc._decorator;
 
@@ -22,6 +24,12 @@ export default class LoadingComponent extends cc.Component {
 
     start() {
         this.goToNextSceneBtn.clickEvents.push(Helper.getEventHandler(this.node, "LoadingComponent", "OnGoToNextSceneBtnClick"));
+
+        let self = this;
+        let conn = new Connection(Constants.EC2_SERVER_ADDR);
+        conn.sendGetRequest("", function (msg: string) {
+            self.mLogger.Log("conn success ", msg);
+        });
     }//start
 
     OnGoToNextSceneBtnClick(event: Event) {
