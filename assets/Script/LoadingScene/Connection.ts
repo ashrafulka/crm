@@ -14,6 +14,7 @@ export class Connection {
         let self = this;
         let xmlRequest = new XMLHttpRequest(); //TODO make ActiveXObject for IE and Edge
         xmlRequest.open("GET", this._mainUrl + endPoint);
+        xmlRequest.setRequestHeader('Content-type', 'text/plain');
         xmlRequest.onreadystatechange = function () {
             if (xmlRequest.readyState == 4) {
                 if (xmlRequest.status == 200) {
