@@ -13,4 +13,10 @@ export class Logger {
             console.log(this.mKey + " : " + msg, obj);
         }
     }
+
+    LogError(msg: string, obj?: any) {
+        if (Constants.IS_LOG_ENABLED) {
+            console.error(this.mKey + " : " + msg, obj);
+        }
+    }
 }

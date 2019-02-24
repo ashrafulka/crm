@@ -38,5 +38,33 @@ export class Connection {
         xmlRequest.send();
     }
 
+    sendPostRequest(endPoint: string, data: string, onSuccess: Function, onFailure?: Function) {
+        let self = this;
+        let xmlRequest = new XMLHttpRequest();
+        xmlRequest.open("POST", this._mainUrl + endPoint);
+        xmlRequest.setRequestHeader('Content-type', 'application/json');
+        xmlRequest.onreadystatechange = function () {
+            if (xmlRequest.readyState == 4) {
+                if (xmlRequest.status == 200) {
+                    self._logger.Log("Post Request successfull::");
+                    onSuccess(xmlRequest.response);
+                } else {
+                    self._logger.Log("Invalid status : " + xmlRequest.status);
+                    if (onFailure) onFailure(xmlRequest.response);
+                }
+            } else if (xmlRequest.readyState <= 0) {
+                self._logger.Log("Invalid state: " + xmlRequest.readyState);
+            }
+        };
+
+        xmlRequest.onerror = function () {
+            if (onFailure) {
+                onFailure("Error sending GET request ");
+            }
+        };
+
+        xmlRequest.send(data);
+    }
+
 
 }

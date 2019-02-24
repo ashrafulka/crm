@@ -5,6 +5,7 @@ export class PlayerModel {
     mPhotoURL: string = "";
     mContextID: string = "";
     mContextType: string = "";
+    mSignature: string = "";
 
     constructor(name: string, id: string) {
         this.mID = id;
@@ -17,6 +18,14 @@ export class PlayerModel {
 
     getID(): string {
         return this.mID;
+    }
+
+    getSignature(): string {
+        return this.mSignature;
+    }
+
+    setSignature(signature: string) {
+        this.mSignature = signature;
     }
 
     setPhotoURL(url: string) {

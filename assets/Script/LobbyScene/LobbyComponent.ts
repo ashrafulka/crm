@@ -9,7 +9,7 @@ export default class LobbyComponent extends cc.Component {
         let persistentNode = cc.find('PersistentNode').getComponent(PersistentNodeComponent);
 
         console.log("lobbyComponent start");
-        persistentNode.getMessage();
+        //persistentNode.getMessage();
     }
 
     // update (dt) {}
