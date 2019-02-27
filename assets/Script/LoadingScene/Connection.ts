@@ -63,7 +63,36 @@ export class Connection {
             }
         };
 
-        xmlRequest.send(data);
+        xmlRequest.send(data); //TODO, data encryption
+    }
+}
+
+export class WSConnection {
+
+    mLogger: Logger = null;
+    mRegsitryURL: string = "";
+    ws: WebSocket = null;
+
+    constructor(url: string) {
+        this.mRegsitryURL = url;
+        this.mLogger = new Logger("WSConnection");
+        this.ws = new WebSocket(this.mRegsitryURL);
+
+    }
+
+    initWs() {
+        let self = this;
+        this.ws.onopen = function (e) {
+            self.mLogger.Log("Opening connection");
+        };
+
+        this.ws.onclose = function (e) {
+            self.mLogger.Log("Closing connection");
+        };
+
+        this.ws.onmessage = function (e) {
+            self.mLogger.Log("On Message: ", e.data);
+        }
     }
 
 

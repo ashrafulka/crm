@@ -117,4 +117,11 @@ export default class ControlManager extends cc.Component {
     OnSlide() {
         this.striker.OnSlide(this.controlSlider.progress);
     }
+
+    onDestroy() {
+        this.striker.strickerBody.off(cc.Node.EventType.TOUCH_START, this.OnStrickerTouchStart.bind(this));
+        this.striker.strickerBody.off(cc.Node.EventType.TOUCH_MOVE, this.OnStrickerDrag.bind(this));
+        this.striker.strickerBody.off(cc.Node.EventType.TOUCH_END, this.OnStrikerDragEnd.bind(this));
+        this.striker.strickerBody.off(cc.Node.EventType.TOUCH_CANCEL, this.OnStrikerDragEnd.bind(this));
+    }
 }
