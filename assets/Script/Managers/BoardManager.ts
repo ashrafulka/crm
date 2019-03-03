@@ -62,7 +62,7 @@ export default class BoardManager extends cc.Component {
 
 
         let xhttp = new XMLHttpRequest();
-        xhttp.open("GET", Constants.EC2_SERVER_ADDR);
+        xhttp.open("GET", Constants.HEROKU_SRVR_ADDR);
         xhttp.setRequestHeader('Content-type', 'text/plain');
         xhttp.onreadystatechange = function () {
             if (xhttp.readyState === 4) {

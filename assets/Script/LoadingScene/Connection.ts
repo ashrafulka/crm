@@ -77,7 +77,6 @@ export class WSConnection {
         this.mRegsitryURL = url;
         this.mLogger = new Logger("WSConnection");
         this.ws = new WebSocket(this.mRegsitryURL);
-
     }
 
     initWs() {
@@ -93,6 +92,20 @@ export class WSConnection {
         this.ws.onmessage = function (e) {
             self.mLogger.Log("On Message: ", e.data);
         }
+    }
+
+    sendCreateRoomRequest(pid: string) {
+        this.ws.send(JSON.stringify({
+            requestType: "joinRoom",
+            fbid: pid
+        }));
+    }
+
+    sendJoinRoomRequest(pid: string) {
+        this.ws.send(JSON.stringify({
+            requestType: "joinRoom",
+            fbid: pid
+        }));
     }
 
 

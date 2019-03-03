@@ -33,6 +33,7 @@ export default class PersistentNodeComponent extends cc.Component {
         this.mPlayer.setPhotoURL(FBInstant.player.getPhoto());
         this.mPlayer.setContextID(FBInstant.context.getID());
         this.mPlayer.setContextType(FBInstant.context.getType());
+        this.mPlayer.setEntryPointData(FBInstant.getEntryPointData());
 
         let self = this;
         FBInstant.player.getSignedPlayerInfoAsync('meta-data')

@@ -6,6 +6,7 @@ export class PlayerModel {
     mContextID: string = "";
     mContextType: string = "";
     mSignature: string = "";
+    entryPointData: string = "";
 
     constructor(name: string, id: string) {
         this.mID = id;
@@ -46,5 +47,14 @@ export class PlayerModel {
 
     getContextType(): string {
         return this.mContextType;
+    }
+
+    setEntryPointData(data) {
+        console.log("setting entry point data : ", data);
+        this.entryPointData = data;
+    }
+
+    getEntryPointData(): string {
+        return this.entryPointData;
     }
 }//player

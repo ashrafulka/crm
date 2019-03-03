@@ -51,4 +51,29 @@ export default class Helper {
         else
             return 180 - angle * 360 / (2 * Math.PI);
     }
+
+
+    static convertImageToBase64(imageSrc) {
+        return new Promise(function (resolve, reject) {
+
+            var img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = function () {
+                var croppedURL = null;
+                croppedURL = cropPlusExport(img, 0, 0, img.naturalWidth, img.naturalHeight);
+                resolve(croppedURL);
+            };
+            img.src = imageSrc;
+
+            function cropPlusExport(img, cropX, cropY, cropWidth, cropHeight) {
+                var canvas1 = document.createElement('canvas');
+                var ctx1 = canvas1.getContext('2d');
+                canvas1.width = cropWidth;
+                canvas1.height = cropHeight;
+                ctx1.drawImage(img, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+                return (canvas1.toDataURL());
+            }
+
+        });
+    }
 }
