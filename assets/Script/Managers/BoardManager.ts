@@ -1,14 +1,9 @@
 import PawnComponent, { PawnType } from "./../Pawn";
 import { Player } from "../Player";
 import Striker from "../Striker";
-import { Constants } from "../LoadingScene/Constants";
+import { Constants, GAME_TYPE } from "../LoadingScene/Constants";
 
 const { ccclass, property } = cc._decorator;
-
-export enum GAME_TYPE {
-    CARROM = 0,
-    RANDOM
-}
 
 @ccclass
 export default class BoardManager extends cc.Component {
@@ -48,32 +43,32 @@ export default class BoardManager extends cc.Component {
     mIsValidPotPending: boolean = false;
 
     onLoad() {
-        this.mStrikerDistanceFromMid = Math.abs(this.striker.strickerBody.getPosition().y);
+        //this.mStrikerDistanceFromMid = Math.abs(this.striker.strickerBody.getPosition().y);
     }
 
     start() {
         this.mAllPawnPool.length = 0; //reset
-        this.Initialize(GAME_TYPE.CARROM); //it should be called from persistent component
-        this.InitializePlayers();
+        //this.Initialize(GAME_TYPE.CARROM); //it should be called from persistent component
+        //this.InitializePlayers();
 
-        this.ApplyTurn();
-        this.mPlayerPool[this.mCurrentTurnIndex].SetType(PawnType.WHITE);
-        this.mPlayerPool[(this.mCurrentTurnIndex + 1) % this.mPlayerPool.length].SetType(PawnType.BLACK);
+        //this.ApplyTurn();
+        //this.mPlayerPool[this.mCurrentTurnIndex].SetType(PawnType.WHITE);
+        //this.mPlayerPool[(this.mCurrentTurnIndex + 1) % this.mPlayerPool.length].SetType(PawnType.BLACK);
 
 
-        let xhttp = new XMLHttpRequest();
-        xhttp.open("GET", Constants.HEROKU_SRVR_ADDR);
-        xhttp.setRequestHeader('Content-type', 'text/plain');
-        xhttp.onreadystatechange = function () {
-            if (xhttp.readyState === 4) {
-                console.log(xhttp.status, xhttp);
-                return;
-            }
-        };
-        xhttp.onerror = function () {
-            console.log("error ", xhttp);
-        }
-        xhttp.send();
+        // let xhttp = new XMLHttpRequest();
+        // xhttp.open("GET", Constants.HEROKU_SRVR_ADDR);
+        // xhttp.setRequestHeader('Content-type', 'text/plain');
+        // xhttp.onreadystatechange = function () {
+        //     if (xhttp.readyState === 4) {
+        //         console.log(xhttp.status, xhttp);
+        //         return;
+        //     }
+        // };
+        // xhttp.onerror = function () {
+        //     console.log("error ", xhttp);
+        // }
+        // xhttp.send();
     }
 
     Initialize(gameType: GAME_TYPE) {

@@ -7,6 +7,7 @@ export class PlayerModel {
     mContextType: string = "";
     mSignature: string = "";
     entryPointData: string = "";
+    mBoardIndex: number = 0;
 
     constructor(name: string, id: string) {
         this.mID = id;
@@ -56,5 +57,13 @@ export class PlayerModel {
 
     getEntryPointData(): string {
         return this.entryPointData;
+    }
+
+    setBoardIndex(bid: number) {
+        this.mBoardIndex = bid;
+    }
+
+    getBoardIndex(): number {
+        return this.mBoardIndex;
     }
 }//player

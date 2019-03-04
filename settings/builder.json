@@ -1,4 +1,12 @@
 {
+  "android-instant": {
+    "REMOTE_SERVER_ROOT": "",
+    "host": "",
+    "pathPattern": "",
+    "recordPath": "",
+    "scheme": "https",
+    "skipRecord": false
+  },
   "appKey": "",
   "appSecret": "",
   "encryptJs": true,
@@ -36,6 +44,5 @@
     "subContext": ""
   },
   "xxteaKey": "be510eff-7085-4e",
-  "zipCompressJs": true,
-  "renderMode": "0"
+  "zipCompressJs": true
 }

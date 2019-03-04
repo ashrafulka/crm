@@ -1,6 +1,6 @@
 projectPath=$PWD
 echo $projectPath
-/Applications/CocosCreator.app/Contents/MacOS/CocosCreator --path "$projectPath" --build "platform=fb-instant-games;debug=true;autoCompile=true"
+"/Applications/CocosCreator 2.app/Contents/MacOS/CocosCreator" --path "$projectPath" --build "platform=fb-instant-games;debug=true;autoCompile=true"
 cp key.pem build/fb-instant-games/
 cp cert.pem build/fb-instant-games/
 cd build/fb-instant-games/

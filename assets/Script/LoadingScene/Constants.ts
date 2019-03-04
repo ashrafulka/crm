@@ -22,3 +22,14 @@ export class ConnectionStrings {
     static CONNECTION_STR: string = "/connection";
     static LOGIN_STR: string = "/login";
 }
+
+export enum GameType {
+    CARROM = 0,
+    RANDOM
+}
+
+export enum GameMode {
+    QUICK_MATCH = 0,
+    FRIEND_1v1,
+    BOT
+}

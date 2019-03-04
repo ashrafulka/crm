@@ -41,9 +41,9 @@
     },
     "_scale": {
       "__type__": "cc.Vec3",
-      "x": 0.5552148437500001,
-      "y": 0.5552148437500001,
-      "z": 0.5552148437500001
+      "x": 0.5187337239583333,
+      "y": 0.5187337239583333,
+      "z": 0.5187337239583333
     },
     "_quat": {
       "__type__": "cc.Quat",
@@ -97,8 +97,8 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 480,
-      "height": 800
+      "width": 640,
+      "height": 960
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -107,8 +107,8 @@
     },
     "_position": {
       "__type__": "cc.Vec3",
-      "x": 240,
-      "y": 400,
+      "x": 320,
+      "y": 480,
       "z": 0
     },
     "_scale": {
@@ -437,7 +437,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "2PlayerBtn",
+    "_name": "play_with_friends",
     "_objFlags": 0,
     "_parent": {
       "__id__": 8
@@ -469,7 +469,7 @@
     "_contentSize": {
       "__type__": "cc.Size",
       "width": 200,
-      "height": 200
+      "height": 100
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -478,8 +478,8 @@
     },
     "_position": {
       "__type__": "cc.Vec3",
-      "x": -110,
-      "y": 0,
+      "x": 0,
+      "y": 100,
       "z": 0
     },
     "_scale": {
@@ -530,7 +530,7 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 100,
+      "width": 200,
       "height": 40
     },
     "_anchorPoint": {
@@ -577,8 +577,8 @@
     "_srcBlendFactor": 1,
     "_dstBlendFactor": 771,
     "_useOriginalSize": false,
-    "_string": "2 Player",
-    "_N$string": "2 Player",
+    "_string": "Play with friends",
+    "_N$string": "Play with friends",
     "_fontSize": 20,
     "_lineHeight": 40,
     "_enableWrapText": false,
@@ -701,7 +701,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "4PlayerBtn",
+    "_name": "quick_match",
     "_objFlags": 0,
     "_parent": {
       "__id__": 8
@@ -733,7 +733,7 @@
     "_contentSize": {
       "__type__": "cc.Size",
       "width": 200,
-      "height": 200
+      "height": 100
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -742,8 +742,8 @@
     },
     "_position": {
       "__type__": "cc.Vec3",
-      "x": 121,
-      "y": 0,
+      "x": 0,
+      "y": -52,
       "z": 0
     },
     "_scale": {
@@ -794,7 +794,7 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 100,
+      "width": 200,
       "height": 40
     },
     "_anchorPoint": {
@@ -841,8 +841,8 @@
     "_srcBlendFactor": 1,
     "_dstBlendFactor": 771,
     "_useOriginalSize": false,
-    "_string": "4 Player",
-    "_N$string": "4 Player",
+    "_string": "Quick Match",
+    "_N$string": "Quick Match",
     "_fontSize": 20,
     "_lineHeight": 40,
     "_enableWrapText": false,
@@ -866,7 +866,7 @@
     "_srcBlendFactor": 770,
     "_dstBlendFactor": 771,
     "_spriteFrame": {
-      "__uuid__": "29158224-f8dd-4661-a796-1ffab537140e"
+      "__uuid__": "f0048c10-f03e-4c97-b9d3-3506e1d58952"
     },
     "_type": 1,
     "_sizeMode": 0,
@@ -894,7 +894,7 @@
     "duration": 0.1,
     "zoomScale": 1.2,
     "clickEvents": [],
-    "_N$interactable": false,
+    "_N$interactable": true,
     "_N$enableAutoGrayEffect": false,
     "_N$transition": 2,
     "transition": 2,
@@ -973,8 +973,8 @@
     "_enabled": true,
     "_designResolution": {
       "__type__": "cc.Size",
-      "width": 480,
-      "height": 800
+      "width": 640,
+      "height": 960
     },
     "_fitWidth": false,
     "_fitHeight": true,
@@ -990,6 +990,12 @@
     "_enabled": true,
     "playerNameLabel": {
       "__id__": 7
+    },
+    "playWithFriendBtn": {
+      "__id__": 13
+    },
+    "quickMatchBtn": {
+      "__id__": 18
     },
     "_id": "cbRZxbMMpOZ4RQbppV5Oid"
   }
