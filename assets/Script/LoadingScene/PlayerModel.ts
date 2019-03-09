@@ -1,13 +1,12 @@
 export class PlayerModel {
-
-    mName: string = "";
-    mID: string = "";
-    mPhotoURL: string = "";
-    mContextID: string = "";
-    mContextType: string = "";
-    mSignature: string = "";
-    entryPointData: string = "";
-    mBoardIndex: number = 0;
+    private mName: string = "";
+    private mID: string = "";
+    private mPhotoURL: string = "";
+    private mContextID: string = "";
+    private mContextType: string = "";
+    private mSignature: string = "";
+    private entryPointData: any;
+    private mBoardIndex: number = 0;
 
     constructor(name: string, id: string) {
         this.mID = id;
@@ -50,12 +49,12 @@ export class PlayerModel {
         return this.mContextType;
     }
 
-    setEntryPointData(data) {
+    setEntryPointData(data: any) {
         console.log("setting entry point data : ", data);
         this.entryPointData = data;
     }
 
-    getEntryPointData(): string {
+    getEntryPointData(): any {
         return this.entryPointData;
     }
 

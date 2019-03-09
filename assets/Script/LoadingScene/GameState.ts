@@ -6,6 +6,7 @@ export enum States {
     LOGGED_IN,
     IN_LOBBY,
     FINDING_MATCH,
+    WAITING_FOR_FRIEND_TO_CONNECT,
     IN_GAME,
     GAME_END
 }
@@ -15,6 +16,10 @@ export class GameState {
     currState: States = States.NULL;
     constructor() {
         this.currState = States.NULL;
+    }
+
+    GetCurrentState(): States {
+        return this.currState;
     }
 
     ChangeState(newState: States) {
@@ -42,6 +47,10 @@ export class GameState {
 
             case States.FINDING_MATCH:
 
+                break;
+
+            case States.WAITING_FOR_FRIEND_TO_CONNECT:
+                this.currState = States.WAITING_FOR_FRIEND_TO_CONNECT;
                 break;
 
             case States.IN_GAME:

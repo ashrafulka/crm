@@ -1,8 +1,9 @@
 import { PlayerModel } from "./PlayerModel";
 import { Logger } from "./Logger";
 import { Connection, WSConnection } from "./Connection";
-import { ConnectionStrings, GameEvents } from "./Constants";
+import { ConnectionStrings, GameEvents, AllGameModes, Constants } from "./Constants";
 import { GameState, States } from "./GameState";
+import { GameModel } from "./GameModel";
 
 const { ccclass, property } = cc._decorator;
 
@@ -14,6 +15,7 @@ export default class PersistentNodeComponent extends cc.Component {
     private connection: Connection = null;
     private mGameState: GameState = null;
     private wsConnection: WSConnection = null;
+    private mCurrentGameModel: GameModel = null;
 
     onLoad() {
         cc.game.addPersistRootNode(this.node);
@@ -45,7 +47,7 @@ export default class PersistentNodeComponent extends cc.Component {
         this.mPlayer.setEntryPointData(FBInstant.getEntryPointData());
 
         let self = this;
-        FBInstant.player.getSignedPlayerInfoAsync('meta-data')
+        FBInstant.player.getSignedPlayerInfoAsync(Constants.SIGNED_PLAYER_ASYNC_FLAG)
             .then(function (result) {
                 self.mLogger.Log("signed playerinfo success:  ", result);
                 self.mPlayer.setSignature(result.getSignature());
@@ -77,6 +79,14 @@ export default class PersistentNodeComponent extends cc.Component {
 
     GetPlayerModel(): PlayerModel {
         return this.mPlayer;
+    }
+
+    SetCurrentGameModel(gm: GameModel) {
+        this.mCurrentGameModel = gm;
+    }
+
+    GetCurrentGameModel(): GameModel {
+        return this.mCurrentGameModel;
     }
 
 }

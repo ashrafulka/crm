@@ -71,11 +71,4 @@ export default class LoadingComponent extends cc.Component {
         this.mPersistentNode.node.off(GameEvents.SUCCESS_LOGIN, this.OnSuccessfulLogin, this);
         this.mPersistentNode.node.off(GameEvents.FAILED_LOGIN, this.OnConnectionFailed, this);
     }
-
-
-    getDefaultImage() {
-        return "";
-    }
-
-
 }

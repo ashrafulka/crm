@@ -1,21 +1,25 @@
 
 import { PlayerModel } from "./PlayerModel";
-import { GameType, GameMode } from "./Constants";
+import { GameType, AllGameModes } from "./Constants";
 
 export class GameModel {
-    private mGameMode: GameMode;
-    private mGamePlayers: PlayerModel[];
+    private mGameMode: AllGameModes;
+    private mRoomID: string;
 
-    SetGameMode(gm: GameMode) {
+    SetGameMode(gm: AllGameModes) {
         this.mGameMode = gm;
     }
 
-    GetGameMode(): GameMode {
+    GetGameMode(): AllGameModes {
         return this.mGameMode;
     }
 
-    AddPlayer(player: PlayerModel) {
-        this.mGamePlayers.push(player);
+    SetRoomID(rid: string) {
+        this.mRoomID = rid;
+    }
+
+    GetRoomID() {
+        return this.mRoomID;
     }
 
 }

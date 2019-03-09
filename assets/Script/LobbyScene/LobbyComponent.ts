@@ -1,9 +1,12 @@
 import PersistentNodeComponent from "../LoadingScene/PersistentNodeComponent";
 import { WSConnection } from "../LoadingScene/Connection";
-import { Constants, GameScenes } from "../LoadingScene/Constants";
+import { Constants, GameScenes, AllGameModes } from "../LoadingScene/Constants";
 import Helper from "../Helpers/Helper";
 import { Logger } from "../LoadingScene/Logger";
 import { PlayerModel } from "../LoadingScene/PlayerModel";
+import { GameModel } from "../LoadingScene/GameModel";
+import { Player } from "../Player";
+import { States } from "../LoadingScene/GameState";
 
 const { ccclass, property } = cc._decorator;
 
@@ -29,16 +32,15 @@ export default class LobbyComponent extends cc.Component {
         this.playerNameLabel.string = "Welcome " + this.mPlayerModel.getName();
 
         let currentEntryPointData: any = this.mPlayerModel.getEntryPointData();
-        if (currentEntryPointData && currentEntryPointData.context_id) {
+        console.log("current entry point data : ", currentEntryPointData);
+        if (currentEntryPointData != null && currentEntryPointData.room_id && currentEntryPointData.room_id != "") {
+
+            //CHECK TIMER, date
             this.mLogger.Log("Context id found:::" + currentEntryPointData.context_id);
-
-            // make a new game model
-            // add players
-            // send room join request
-            // 
-
-
-            //send room join request
+            let gm = new GameModel();
+            gm.SetGameMode(AllGameModes.FRIEND_1v1);
+            gm.SetRoomID(currentEntryPointData.room_id);
+            this.mPersistentNode.SetCurrentGameModel(gm);
             cc.director.loadScene(GameScenes.GAME);
         } else {
             this.InitButtons();
@@ -75,17 +77,12 @@ export default class LobbyComponent extends cc.Component {
                 notification: 'PUSH'
             }).then(() => {
                 console.log('updateAsync() success!');
-                let conn = new WSConnection(Constants.HEROKU_WS_ADDR);
-                conn.initWs();
-                let waitForWs = setInterval(function () {
-                    if (conn.ws.readyState == conn.ws.OPEN) {
-                        console.log("sending create room requsst");
-                        self.mPersistentNode.SaveWS(conn);
-                        conn.sendCreateRoomRequest(pid);
-                        cc.director.loadScene(GameScenes.GAME);
-                        clearInterval(waitForWs);
-                    }
-                }, 500);
+                let gm = new GameModel();
+                gm.SetGameMode(AllGameModes.FRIEND_1v1);
+                gm.SetRoomID(cid);
+                self.mPersistentNode.SetCurrentGameModel(gm);
+                self.mPersistentNode.GetGameState().ChangeState(States.WAITING_FOR_FRIEND_TO_CONNECT);
+                cc.director.loadScene(GameScenes.GAME);
             }, error => {
                 console.error('updateAsync() ERROR! ', error);
             });

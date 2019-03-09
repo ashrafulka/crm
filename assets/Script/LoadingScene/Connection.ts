@@ -1,4 +1,6 @@
 import { Logger } from "./Logger";
+import { GameEvents, RequestTypes as RequestTypes } from "./Constants";
+import PersistentNodeComponent from "./PersistentNodeComponent";
 
 export class Connection {
     private _mainUrl: string = "";
@@ -70,43 +72,128 @@ export class Connection {
 export class WSConnection {
 
     mLogger: Logger = null;
-    mRegsitryURL: string = "";
+    mRegistryURL: string = "";
     ws: WebSocket = null;
+    mPersistentNode: PersistentNodeComponent = null;
+    isConnecting = true;
+    forceClose = false;
 
-    constructor(url: string) {
-        this.mRegsitryURL = url;
+    constructor(url: string, pn: PersistentNodeComponent) {
+        this.mRegistryURL = url;
         this.mLogger = new Logger("WSConnection");
-        this.ws = new WebSocket(this.mRegsitryURL);
+        this.mPersistentNode = pn;
     }
 
-    initWs() {
+    forceCloseWS() {
+        this.forceClose = true;
+        this.ws.close();
+    }
+
+    connectWs() {
+        this.isConnecting = true;
         let self = this;
-        this.ws.onopen = function (e) {
+        let ws = new WebSocket(this.mRegistryURL);
+
+        ws.onopen = function (e) {
+            self.isConnecting = false;
             self.mLogger.Log("Opening connection");
         };
 
-        this.ws.onclose = function (e) {
+        ws.onclose = function (e) {
+            self.isConnecting = false;
             self.mLogger.Log("Closing connection");
+            self.ws = null;
+
+            if (self.forceClose == false) {
+                self.retryConnection();
+                let maxRetryCount = 3;
+                let reconnect = setInterval(function () {
+                    maxRetryCount--;
+                    self.retryConnection();
+                    if (maxRetryCount <= 0 || self.isConnecting == false) {
+                        clearInterval(reconnect);
+                    }
+                }, 3000);
+            }
+        };
+        ws.onmessage = function (e) {
+            self.isConnecting = false;
+            self.mLogger.Log("On Message: ", e.data);
+            let jsonData = JSON.parse(e.data);
+
+            if (!jsonData || !jsonData.body) {
+                return;
+            }
+
+            self.mLogger.Log("My event type : " + jsonData.body["event_type"]);
+            //console.log(jsonData.body["event_type"]);
+            if (jsonData.body && jsonData.body.event_type) {
+                //if (jsonData.body.event_type == GameEvents.ROOM_CREATION_SUCCESS)
+                switch (jsonData.body.event_type) {
+                    case GameEvents.ROOM_CREATION_SUCCESS:
+                        self.mPersistentNode.node.emit(GameEvents.ROOM_CREATION_SUCCESS);
+                        break;
+                    case GameEvents.ROOM_CREATION_FAILED:
+                        self.mPersistentNode.node.emit(GameEvents.ROOM_CREATION_FAILED);
+                        break;
+                    case GameEvents.START_GAME:
+                        self.mPersistentNode.node.emit(GameEvents.START_GAME);
+                        break;
+                    case GameEvents.START_GAME_FAIL:
+                        self.mPersistentNode.node.emit(GameEvents.START_GAME_FAIL);
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }//onmessage
+
+        ws.onerror = function (e) {
+            self.isConnecting = false;
+            self.mLogger.LogError("on error ", e);
         };
 
-        this.ws.onmessage = function (e) {
-            self.mLogger.Log("On Message: ", e.data);
+        this.ws = ws;
+    }
+
+    retryConnection() {
+        if (this.ws && (this.ws.readyState == this.ws.CONNECTING || this.ws.readyState == this.ws.OPEN)) {
+            this.mLogger.Log("Already trying to connect or connected");
+            return;
         }
+
+        this.connectWs();
     }
 
-    sendCreateRoomRequest(pid: string) {
+
+    updateWSToServer() {
+
+    }//updatewstoserver
+
+    sendCreateRoomRequest(pid: string, rid: string) {
         this.ws.send(JSON.stringify({
-            requestType: "joinRoom",
-            fbid: pid
+            request_type: RequestTypes.CREATE_ROOM,
+            room_id: rid,
+            fb_id: pid
         }));
+        // if (this.ws.readyState == this.ws.OPEN) {
+
+        // } else {
+        //     this.retryConnection();
+        // }
     }
 
-    sendJoinRoomRequest(pid: string) {
+    sendJoinRoomRequest(pid: string, rid: string) {
         this.ws.send(JSON.stringify({
-            requestType: "joinRoom",
-            fbid: pid
+            request_type: RequestTypes.JOIN_ROOM,
+            room_id: rid,
+            fb_id: pid
         }));
+
+        // if (this.ws.readyState == this.ws.OPEN) {
+
+        // } else {
+        //     this.retryConnection();
+        // }
     }
-
-
 }

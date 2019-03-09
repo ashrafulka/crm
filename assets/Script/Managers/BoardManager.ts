@@ -1,7 +1,10 @@
 import PawnComponent, { PawnType } from "./../Pawn";
 import { Player } from "../Player";
 import Striker from "../Striker";
-import { Constants, GAME_TYPE } from "../LoadingScene/Constants";
+import { Constants, GameType, AllGameModes, GameEvents } from "../LoadingScene/Constants";
+import { WSConnection } from "../LoadingScene/Connection";
+import PersistentNodeComponent from "../LoadingScene/PersistentNodeComponent";
+import { Logger } from "../LoadingScene/Logger";
 
 const { ccclass, property } = cc._decorator;
 
@@ -29,6 +32,9 @@ export default class BoardManager extends cc.Component {
     mAllPawnPool: Array<PawnComponent> = [];
     mPlayerPool: Array<Player> = [];
 
+    mPersistentNode: PersistentNodeComponent = null;
+    mLogger: Logger = null;
+
     mCurrentTurnIndex: number = 0;
     mPersonalIndex: number = 0;
     mStrikerDistanceFromMid: number = 0;
@@ -48,35 +54,24 @@ export default class BoardManager extends cc.Component {
 
     start() {
         this.mAllPawnPool.length = 0; //reset
+        this.mLogger = new Logger(this.node.name);
+        this.mPersistentNode = cc.find(Constants.PERSISTENT_NODE_NAME).getComponent(PersistentNodeComponent);
+
+
         //this.Initialize(GAME_TYPE.CARROM); //it should be called from persistent component
         //this.InitializePlayers();
 
         //this.ApplyTurn();
         //this.mPlayerPool[this.mCurrentTurnIndex].SetType(PawnType.WHITE);
         //this.mPlayerPool[(this.mCurrentTurnIndex + 1) % this.mPlayerPool.length].SetType(PawnType.BLACK);
-
-
-        // let xhttp = new XMLHttpRequest();
-        // xhttp.open("GET", Constants.HEROKU_SRVR_ADDR);
-        // xhttp.setRequestHeader('Content-type', 'text/plain');
-        // xhttp.onreadystatechange = function () {
-        //     if (xhttp.readyState === 4) {
-        //         console.log(xhttp.status, xhttp);
-        //         return;
-        //     }
-        // };
-        // xhttp.onerror = function () {
-        //     console.log("error ", xhttp);
-        // }
-        // xhttp.send();
     }
 
-    Initialize(gameType: GAME_TYPE) {
+    Initialize(gameType: GameType) {
         switch (gameType) {
-            case GAME_TYPE.CARROM:
+            case GameType.CARROM:
                 this.InitializeCarromBoard();
                 break;
-            case GAME_TYPE.RANDOM:
+            case GameType.RANDOM:
                 //this.initializeRandomBoard();
                 break;
         }
