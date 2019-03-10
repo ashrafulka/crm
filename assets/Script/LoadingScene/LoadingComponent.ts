@@ -1,6 +1,6 @@
 import Helper from "../Helpers/Helper";
 import { Logger } from "./Logger";
-import { Connection, WSConnection } from "./Connection";
+import { Connection } from "./Connection";
 import { Constants, ConnectionStrings, GameEvents, GameScenes } from "./Constants";
 import PersistentNodeComponent from "./PersistentNodeComponent";
 import { States } from "./GameState";
@@ -58,7 +58,10 @@ export default class LoadingComponent extends cc.Component {
         this.mPersistentNode.GetGameState().ChangeState(States.LOGGING_IN);
         this.mPersistentNode.LoadAndLogin();
 
-        return;
+        //console.log("Connecting to socket connection");
+        //var sConn = new SocketConnection(Constants.HEROKU_SRVR_ADDR);
+        //sConn.connectSocket();
+        //console.log("should be connected now");
     }
 
     OnSuccessfulLogin() {

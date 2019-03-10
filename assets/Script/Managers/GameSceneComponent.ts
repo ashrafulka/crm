@@ -1,8 +1,8 @@
 import PersistentNodeComponent from "../LoadingScene/PersistentNodeComponent";
-import { Constants, AllGameModes, GameEvents } from "../LoadingScene/Constants";
+import { Constants, AllGameModes, GameEvents, ConnectionStrings } from "../LoadingScene/Constants";
 import { States } from "../LoadingScene/GameState";
 import WaitingPanelComponent from "../UI/WaitingPanelComponent";
-import { WSConnection } from "../LoadingScene/Connection";
+import { WSConnection, SocketConnection } from "../LoadingScene/Connection";
 import { Logger } from "../LoadingScene/Logger";
 import BoardManager from "./BoardManager";
 
@@ -31,28 +31,38 @@ export default class GameSceneComponent extends cc.Component {
 
         if (gameModel.GetGameMode() == AllGameModes.FRIEND_1v1) {
             let self = this;
-            let conn = new WSConnection(Constants.HEROKU_WS_ADDR, this.mPersistentNode);
-            conn.connectWs();
+            let maxTryCount = Constants.MAX_RETRY_COUNT;
+            let socketConn: SocketConnection = null;
 
-            let waitForWs = setInterval(function () {
-                self.mLogger.Log("waiting for web socekt connection");
-                if (conn.ws.readyState == conn.ws.OPEN) {
-                    console.log("WS OPEN");
-                    self.mPersistentNode.SaveWS(conn);
-                    if (entryPointData != null && entryPointData.room_id) { //2nd player
-                        self.mLogger.Log("JOIN ROOM REQUEST");
-                        conn.sendJoinRoomRequest(self.mPersistentNode.GetPlayerModel().getID(), self.mPersistentNode.GetCurrentGameModel().GetRoomID());
-                    } else { //1st player
-                        self.mLogger.Log("Creating new room");
-                        conn.sendCreateRoomRequest(self.mPersistentNode.GetPlayerModel().getID(), self.mPersistentNode.GetCurrentGameModel().GetRoomID());
-                    }
-                    self.mPersistentNode.node.on(GameEvents.ROOM_CREATION_SUCCESS, self.OnRoomCreationSuccess, self);
-                    self.mPersistentNode.node.on(GameEvents.ROOM_CREATION_FAILED, self.OnRoomCreationFail, self);
-                    self.mPersistentNode.node.on(GameEvents.START_GAME, self.OnGameStartCall, self);
-                    self.mPersistentNode.node.on(GameEvents.START_GAME_FAIL, self.OnGameStartFailed, self);
-                    clearInterval(waitForWs);
+            let waitForSocket = setInterval(function () {
+                maxTryCount--;
+
+                if (socketConn && socketConn.mIsConnected) {
+                    clearInterval(waitForSocket);
+                    return;
                 }
-            }, 500);
+
+                if (maxTryCount <= 0) {
+                    self.OnServerErr({ message: "No Response from server." });
+                    clearInterval(waitForSocket);
+                    return;
+                }
+
+                socketConn = new SocketConnection(Constants.HEROKU_SRVR_ADDR + ConnectionStrings.FRIEND_1v1, self.mPersistentNode);
+                socketConn.connectSocket();
+
+                if (entryPointData != null && entryPointData.room_id) { //2nd player
+                    self.mLogger.Log("JOIN ROOM REQUEST");
+                    socketConn.sendRoomJoinRequest(self.mPersistentNode.GetPlayerModel().getID(), self.mPersistentNode.GetCurrentGameModel().GetRoomID());
+                    self.mPersistentNode.node.on(GameEvents.ROOM_JOIN_SUCCESS, self.OnRoomCreationSuccess, self);
+                } else { //1st player
+                    self.mLogger.Log("CREATING ROOM REQUEST");
+                    socketConn.sendCreateRoomRequest(self.mPersistentNode.GetPlayerModel().getID(), self.mPersistentNode.GetCurrentGameModel().GetRoomID());
+                    self.mPersistentNode.node.on(GameEvents.ROOM_CREATION_SUCCESS, self.OnRoomCreationSuccess, self);
+                }
+                self.mPersistentNode.node.on(GameEvents.START_GAME, self.OnGameStartCall, self);
+                self.mPersistentNode.node.on(GameEvents.SERVER_ERR, self.OnServerErr, self);
+            }, 5000);
         }
 
         this.InitializeWaitPanel();
@@ -72,20 +82,11 @@ export default class GameSceneComponent extends cc.Component {
     }
 
     OnRoomCreationSuccess() {
-        this.mLogger.Log("room successfully created");
+        this.mLogger.Log("ROOM CREATED SUCCESSFULLY::::::");
         //this.waitingPanelNode.active = false;
         //this.failedToConnectNode.active = false;
 
         this.mPersistentNode.node.off(GameEvents.ROOM_CREATION_SUCCESS, this.OnRoomCreationSuccess, this);
-    }
-
-    OnRoomCreationFail() {
-        this.mLogger.LogError("Room creation failed");
-        this.waitingPanelNode.active = false;
-        this.failedToConnectNode.active = true;
-        //room creation fail
-
-        this.mPersistentNode.node.off(GameEvents.ROOM_CREATION_FAILED, this.OnRoomCreationFail, this);
     }
 
     OnGameStartCall() {
@@ -97,9 +98,8 @@ export default class GameSceneComponent extends cc.Component {
         this.mPersistentNode.node.off(GameEvents.START_GAME, this.OnGameStartCall, this);
     }
 
-    OnGameStartFailed() {
-        this.mLogger.LogError("YOOO:::: Game start failed ;:(");
-        this.mPersistentNode.node.off(GameEvents.START_GAME_FAIL, this.OnGameStartFailed, this);
+    OnServerErr(data) {
+        this.mLogger.LogError("Server ERROR: " + data);
     }
 
 }

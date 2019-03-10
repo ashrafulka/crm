@@ -1,9 +1,9 @@
 import { PlayerModel } from "./PlayerModel";
 import { Logger } from "./Logger";
-import { Connection, WSConnection } from "./Connection";
 import { ConnectionStrings, GameEvents, AllGameModes, Constants } from "./Constants";
 import { GameState, States } from "./GameState";
 import { GameModel } from "./GameModel";
+import { Connection, SocketConnection } from "./Connection";
 
 const { ccclass, property } = cc._decorator;
 
@@ -13,8 +13,8 @@ export default class PersistentNodeComponent extends cc.Component {
     private mPlayer: PlayerModel = null;
     private mLogger: Logger = null;
     private connection: Connection = null;
+    private mSocketConnection: SocketConnection = null;
     private mGameState: GameState = null;
-    private wsConnection: WSConnection = null;
     private mCurrentGameModel: GameModel = null;
 
     onLoad() {
@@ -27,16 +27,16 @@ export default class PersistentNodeComponent extends cc.Component {
         return this.mGameState;
     }
 
-    SaveWS(wsc: WSConnection) {
-        this.wsConnection = wsc;
-    }
-
-    GetWS(): WSConnection {
-        return this.wsConnection;
-    }
-
     SaveConnection(con: Connection) {
         this.connection = con;
+    }
+
+    SaveSocketConnection(con: SocketConnection) {
+        this.mSocketConnection = con;
+    }
+
+    GetSocketConnection() {
+        return this.mSocketConnection;
     }
 
     LoadAndLogin() {

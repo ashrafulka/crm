@@ -2,7 +2,6 @@ import PawnComponent, { PawnType } from "./../Pawn";
 import { Player } from "../Player";
 import Striker from "../Striker";
 import { Constants, GameType, AllGameModes, GameEvents } from "../LoadingScene/Constants";
-import { WSConnection } from "../LoadingScene/Connection";
 import PersistentNodeComponent from "../LoadingScene/PersistentNodeComponent";
 import { Logger } from "../LoadingScene/Logger";
 

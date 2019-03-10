@@ -1,6 +1,7 @@
 import { Logger } from "./Logger";
-import { GameEvents, RequestTypes as RequestTypes } from "./Constants";
+import { GameEvents, RequestTypes as RequestTypes, Constants } from "./Constants";
 import PersistentNodeComponent from "./PersistentNodeComponent";
+import { socket } from "../SocketIO/socket.io";
 
 export class Connection {
     private _mainUrl: string = "";
@@ -16,6 +17,7 @@ export class Connection {
         let self = this;
         let xmlRequest = new XMLHttpRequest(); //TODO make ActiveXObject for IE and Edge
         xmlRequest.open("GET", this._mainUrl + endPoint);
+        //xmlRequest.withCredentials = true;
         xmlRequest.setRequestHeader('Content-type', 'text/plain');
         xmlRequest.onreadystatechange = function () {
             if (xmlRequest.readyState == 4) {
@@ -67,6 +69,92 @@ export class Connection {
 
         xmlRequest.send(data); //TODO, data encryption
     }
+}
+
+export class SocketConnection {
+
+    mLogger: Logger = null;
+    mRegistryURL: string = "";
+    mySocket = null;
+    mPersistentNode: PersistentNodeComponent;
+    mIsConnected: boolean = false;
+
+    constructor(url: string, pn: PersistentNodeComponent) {
+        this.mRegistryURL = url;
+        this.mLogger = new Logger("SocketConnection");
+        this.mPersistentNode = pn;
+        this.mIsConnected = false;
+    }
+
+    retryConnection() {
+        if (this.mIsConnected) {
+            this.mLogger.Log("already connected");
+            return;
+        }
+        this.connectSocket();
+    }
+
+    connectSocket() {
+        let self = this;
+        let socket = io.connect(this.mRegistryURL);
+        this.mLogger.Log("Socket initialized");
+
+        socket.on('connected', function (data) {
+            self.mIsConnected = true;
+            self.mPersistentNode.SaveSocketConnection(self);
+            //let jsonData = JSON.parse(data);
+            if (data.success) {
+                self.mLogger.Log("SOCKET CONNECTED ", data);
+            }
+        });
+
+        socket.on(GameEvents.ROOM_CREATION_SUCCESS, function (data) {
+            self.mLogger.Log("room created ", data);
+            self.mPersistentNode.node.emit(GameEvents.ROOM_CREATION_SUCCESS);
+        });
+
+        socket.on(GameEvents.ROOM_JOIN_SUCCESS, function (data) {
+            self.mLogger.Log("room joined ", data);
+            self.mPersistentNode.node.emit(GameEvents.ROOM_JOIN_SUCCESS);
+        });
+
+        socket.on(GameEvents.START_GAME, function (data) {
+            self.mLogger.Log("start game call", data);
+            self.mPersistentNode.node.emit(GameEvents.START_GAME);
+        });
+
+        socket.on(GameEvents.SERVER_ERR, function (data) {
+            self.mLogger.LogError("game fail", data);
+            self.mPersistentNode.node.emit(GameEvents.SERVER_ERR, data);
+        });
+
+        this.mySocket = socket;
+    }
+
+    sendRoomJoinRequest(pid: string, rid: string, ) {
+        if (!this.mySocket)
+            return;
+
+        this.mySocket.emit(RequestTypes.JOIN_ROOM,
+            {
+                request_type: RequestTypes.JOIN_ROOM,
+                room_id: rid,
+                player_id: pid
+            });
+    }
+
+    sendCreateRoomRequest(pid: string, rid: string, ) {
+        if (!this.mySocket)
+            return;
+
+        this.mySocket.emit(RequestTypes.CREATE_ROOM,
+            {
+                request_type: RequestTypes.CREATE_ROOM,
+                room_id: rid,
+                player_id: pid
+            });
+    }
+}
 }
 
 export class WSConnection {
@@ -133,14 +221,11 @@ export class WSConnection {
                     case GameEvents.ROOM_CREATION_SUCCESS:
                         self.mPersistentNode.node.emit(GameEvents.ROOM_CREATION_SUCCESS);
                         break;
-                    case GameEvents.ROOM_CREATION_FAILED:
-                        self.mPersistentNode.node.emit(GameEvents.ROOM_CREATION_FAILED);
-                        break;
                     case GameEvents.START_GAME:
                         self.mPersistentNode.node.emit(GameEvents.START_GAME);
                         break;
-                    case GameEvents.START_GAME_FAIL:
-                        self.mPersistentNode.node.emit(GameEvents.START_GAME_FAIL);
+                    case GameEvents.SERVER_ERR:
+                        self.mPersistentNode.node.emit(GameEvents.SERVER_ERR);
                         break;
                     default:
                         break;

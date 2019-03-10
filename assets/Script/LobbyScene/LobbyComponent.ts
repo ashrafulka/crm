@@ -1,5 +1,4 @@
 import PersistentNodeComponent from "../LoadingScene/PersistentNodeComponent";
-import { WSConnection } from "../LoadingScene/Connection";
 import { Constants, GameScenes, AllGameModes } from "../LoadingScene/Constants";
 import Helper from "../Helpers/Helper";
 import { Logger } from "../LoadingScene/Logger";

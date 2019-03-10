@@ -4,6 +4,8 @@ export class Constants {
     static HEROKU_WS_ADDR: string = "wss://carrom-ulka.herokuapp.com";
     static SIGNED_PLAYER_ASYNC_FLAG = "meta-data";
     static PERSISTENT_NODE_NAME = "PersistentNode";
+
+    static MAX_RETRY_COUNT: number = 3;
 }
 
 export class GameScenes {
@@ -13,8 +15,9 @@ export class GameScenes {
 }
 
 export class ConnectionStrings {
-    static CONNECTION_STR: string = "/connection";
+    static CONNECTION_STR: string = "/connect";
     static LOGIN_STR: string = "/login";
+    static FRIEND_1v1: string = "/friend1v1";
 }
 
 export enum GameType {
@@ -34,10 +37,8 @@ export class GameEvents {
     static FAILED_LOGIN: string = "failed_login";
     static ROOM_CREATION_SUCCESS: string = "room_create_success";
     static ROOM_JOIN_SUCCESS: string = "room_join_success";
-    static ROOM_JOIN_FAILED: string = "room_join_failed";
-    static ROOM_CREATION_FAILED: string = "room_create_fail";
     static START_GAME: string = "start_game_success";
-    static START_GAME_FAIL: string = "start_game_fail";
+    static SERVER_ERR: string = "server_error";
 }
 
 export class RequestTypes {
