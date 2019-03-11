@@ -62,8 +62,6 @@ export default class PersistentNodeComponent extends cc.Component {
         this.connection.sendPostRequest(ConnectionStrings.LOGIN_STR, data, function (msg: string) {
             let msgDecoded = JSON.parse(msg);
             if (msgDecoded.success && msgDecoded.success == true) {
-                // self.mLogger.Log("pid: ", pid);
-                // self.mLogger.Log("pid: ", self.mPlayer.getID());
                 self.mLogger.Log("Login success: ", msg);
                 self.node.emit(GameEvents.SUCCESS_LOGIN);
                 self.GetGameState().ChangeState(States.LOGGED_IN);

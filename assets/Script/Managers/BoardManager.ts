@@ -55,9 +55,9 @@ export default class BoardManager extends cc.Component {
         this.mAllPawnPool.length = 0; //reset
         this.mLogger = new Logger(this.node.name);
         this.mPersistentNode = cc.find(Constants.PERSISTENT_NODE_NAME).getComponent(PersistentNodeComponent);
+        this.striker.node.active = false;
+        this.Initialize(GameType.CARROM); //it should be called from persistent component
 
-
-        //this.Initialize(GAME_TYPE.CARROM); //it should be called from persistent component
         //this.InitializePlayers();
 
         //this.ApplyTurn();
@@ -89,15 +89,9 @@ export default class BoardManager extends cc.Component {
         return true;
     }
 
-    InitializePlayers() {
-        //coming from server -> persistent object
-        this.mPlayerPool.length = 0;
-
-        this.mPlayerPool.push(new Player("player0", "James", 0));
-        this.mPlayerPool.push(new Player("player1", "Kyle", 1));
-
-        this.mPersonalIndex = 0; //TODO
-
+    Initialize1v1Players(personalIndex: number, currentTurnIndex: number) {
+        this.mPersonalIndex = personalIndex;
+        this.mCurrentTurnIndex = currentTurnIndex;
         switch (this.mPersonalIndex) {
             case 1: // TOP player
                 this.boardBody.angle = 180;
@@ -108,6 +102,9 @@ export default class BoardManager extends cc.Component {
             default:
                 break;
         }
+
+        this.mPlayerPool[this.mCurrentTurnIndex].SetType(PawnType.WHITE);
+        this.mPlayerPool[(this.mCurrentTurnIndex + 1) % this.mPlayerPool.length].SetType(PawnType.BLACK);
     }
 
     HandleNextTurn() {
@@ -127,7 +124,7 @@ export default class BoardManager extends cc.Component {
         this.mIsValidPotPending = false; // release
     }
 
-    private ApplyTurn() {
+    ApplyTurn() {
         //update striker pos
         this.UpdateStrikerPos();
     }

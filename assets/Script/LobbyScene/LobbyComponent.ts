@@ -33,12 +33,12 @@ export default class LobbyComponent extends cc.Component {
         let currentEntryPointData: any = this.mPlayerModel.getEntryPointData();
         console.log("current entry point data : ", currentEntryPointData);
         if (currentEntryPointData != null && currentEntryPointData.room_id && currentEntryPointData.room_id != "") {
-
             //CHECK TIMER, date
             this.mLogger.Log("Context id found:::" + currentEntryPointData.context_id);
             let gm = new GameModel();
             gm.SetGameMode(AllGameModes.FRIEND_1v1);
             gm.SetRoomID(currentEntryPointData.room_id);
+            gm.SetInitiator(currentEntryPointData.sender_id, currentEntryPointData.sender_name);
             this.mPersistentNode.SetCurrentGameModel(gm);
             cc.director.loadScene(GameScenes.GAME);
         } else {
@@ -71,7 +71,7 @@ export default class LobbyComponent extends cc.Component {
                 image: baseImage,
                 text: pName + ' wants to play carrom with you!',
                 template: 'play_turn',
-                data: { context_id: cid, context_type: cType, room_id: cid, sender_id: pid, date: dateNow },
+                data: { context_id: cid, context_type: cType, room_id: cid, sender_id: pid, date: dateNow, sender_name: pName },
                 strategy: 'IMMEDIATE',
                 notification: 'PUSH'
             }).then(() => {

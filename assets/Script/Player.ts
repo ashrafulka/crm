@@ -4,14 +4,14 @@ export class Player {
 
     private mId: string = "";
     private mName: string = "";
-    private mBoardIndex: number = -1;
+    //private mBoardIndex: number = -1;
     private mScore: number = 0;
     private mPawnType: PawnType = PawnType.NONE;
 
-    constructor(id: string, name: string, bIndex: number) {
+    constructor(id: string, name: string) {
         this.mId = id;
         this.mName = name;
-        this.mBoardIndex = bIndex;
+        //this.mBoardIndex = bIndex;
     }
 
     GetID(): string {
@@ -20,10 +20,6 @@ export class Player {
 
     GetName(): string {
         return this.mName;
-    }
-
-    GetBoardIndex(): number {
-        return this.mBoardIndex;
     }
 
     AddToScore(amount: number) {

@@ -120,7 +120,7 @@ export class SocketConnection {
 
         socket.on(GameEvents.START_GAME, function (data) {
             self.mLogger.Log("start game call", data);
-            self.mPersistentNode.node.emit(GameEvents.START_GAME);
+            self.mPersistentNode.node.emit(GameEvents.START_GAME, data.body);
         });
 
         socket.on(GameEvents.SERVER_ERR, function (data) {
@@ -131,7 +131,7 @@ export class SocketConnection {
         this.mySocket = socket;
     }
 
-    sendRoomJoinRequest(pid: string, rid: string, ) {
+    sendRoomJoinRequest(pid: string, pName: string, rid: string, initiatorID: string, rmMasterName: string) {
         if (!this.mySocket)
             return;
 
@@ -139,11 +139,14 @@ export class SocketConnection {
             {
                 request_type: RequestTypes.JOIN_ROOM,
                 room_id: rid,
-                player_id: pid
+                player_id: pid,
+                player_name: pName,
+                room_master_id: initiatorID,
+                room_master_name: rmMasterName
             });
     }
 
-    sendCreateRoomRequest(pid: string, rid: string, ) {
+    sendCreateRoomRequest(pid: string, rid: string) {
         if (!this.mySocket)
             return;
 
@@ -155,130 +158,129 @@ export class SocketConnection {
             });
     }
 }
-}
 
-export class WSConnection {
+// export class WSConnection {
 
-    mLogger: Logger = null;
-    mRegistryURL: string = "";
-    ws: WebSocket = null;
-    mPersistentNode: PersistentNodeComponent = null;
-    isConnecting = true;
-    forceClose = false;
+//     mLogger: Logger = null;
+//     mRegistryURL: string = "";
+//     ws: WebSocket = null;
+//     mPersistentNode: PersistentNodeComponent = null;
+//     isConnecting = true;
+//     forceClose = false;
 
-    constructor(url: string, pn: PersistentNodeComponent) {
-        this.mRegistryURL = url;
-        this.mLogger = new Logger("WSConnection");
-        this.mPersistentNode = pn;
-    }
+//     constructor(url: string, pn: PersistentNodeComponent) {
+//         this.mRegistryURL = url;
+//         this.mLogger = new Logger("WSConnection");
+//         this.mPersistentNode = pn;
+//     }
 
-    forceCloseWS() {
-        this.forceClose = true;
-        this.ws.close();
-    }
+//     forceCloseWS() {
+//         this.forceClose = true;
+//         this.ws.close();
+//     }
 
-    connectWs() {
-        this.isConnecting = true;
-        let self = this;
-        let ws = new WebSocket(this.mRegistryURL);
+//     connectWs() {
+//         this.isConnecting = true;
+//         let self = this;
+//         let ws = new WebSocket(this.mRegistryURL);
 
-        ws.onopen = function (e) {
-            self.isConnecting = false;
-            self.mLogger.Log("Opening connection");
-        };
+//         ws.onopen = function (e) {
+//             self.isConnecting = false;
+//             self.mLogger.Log("Opening connection");
+//         };
 
-        ws.onclose = function (e) {
-            self.isConnecting = false;
-            self.mLogger.Log("Closing connection");
-            self.ws = null;
+//         ws.onclose = function (e) {
+//             self.isConnecting = false;
+//             self.mLogger.Log("Closing connection");
+//             self.ws = null;
 
-            if (self.forceClose == false) {
-                self.retryConnection();
-                let maxRetryCount = 3;
-                let reconnect = setInterval(function () {
-                    maxRetryCount--;
-                    self.retryConnection();
-                    if (maxRetryCount <= 0 || self.isConnecting == false) {
-                        clearInterval(reconnect);
-                    }
-                }, 3000);
-            }
-        };
-        ws.onmessage = function (e) {
-            self.isConnecting = false;
-            self.mLogger.Log("On Message: ", e.data);
-            let jsonData = JSON.parse(e.data);
+//             if (self.forceClose == false) {
+//                 self.retryConnection();
+//                 let maxRetryCount = 3;
+//                 let reconnect = setInterval(function () {
+//                     maxRetryCount--;
+//                     self.retryConnection();
+//                     if (maxRetryCount <= 0 || self.isConnecting == false) {
+//                         clearInterval(reconnect);
+//                     }
+//                 }, 3000);
+//             }
+//         };
+//         ws.onmessage = function (e) {
+//             self.isConnecting = false;
+//             self.mLogger.Log("On Message: ", e.data);
+//             let jsonData = JSON.parse(e.data);
 
-            if (!jsonData || !jsonData.body) {
-                return;
-            }
+//             if (!jsonData || !jsonData.body) {
+//                 return;
+//             }
 
-            self.mLogger.Log("My event type : " + jsonData.body["event_type"]);
-            //console.log(jsonData.body["event_type"]);
-            if (jsonData.body && jsonData.body.event_type) {
-                //if (jsonData.body.event_type == GameEvents.ROOM_CREATION_SUCCESS)
-                switch (jsonData.body.event_type) {
-                    case GameEvents.ROOM_CREATION_SUCCESS:
-                        self.mPersistentNode.node.emit(GameEvents.ROOM_CREATION_SUCCESS);
-                        break;
-                    case GameEvents.START_GAME:
-                        self.mPersistentNode.node.emit(GameEvents.START_GAME);
-                        break;
-                    case GameEvents.SERVER_ERR:
-                        self.mPersistentNode.node.emit(GameEvents.SERVER_ERR);
-                        break;
-                    default:
-                        break;
-                }
-            }
-        }//onmessage
+//             self.mLogger.Log("My event type : " + jsonData.body["event_type"]);
+//             //console.log(jsonData.body["event_type"]);
+//             if (jsonData.body && jsonData.body.event_type) {
+//                 //if (jsonData.body.event_type == GameEvents.ROOM_CREATION_SUCCESS)
+//                 switch (jsonData.body.event_type) {
+//                     case GameEvents.ROOM_CREATION_SUCCESS:
+//                         self.mPersistentNode.node.emit(GameEvents.ROOM_CREATION_SUCCESS);
+//                         break;
+//                     case GameEvents.START_GAME:
+//                         self.mPersistentNode.node.emit(GameEvents.START_GAME);
+//                         break;
+//                     case GameEvents.SERVER_ERR:
+//                         self.mPersistentNode.node.emit(GameEvents.SERVER_ERR);
+//                         break;
+//                     default:
+//                         break;
+//                 }
+//             }
+//         }//onmessage
 
-        ws.onerror = function (e) {
-            self.isConnecting = false;
-            self.mLogger.LogError("on error ", e);
-        };
+//         ws.onerror = function (e) {
+//             self.isConnecting = false;
+//             self.mLogger.LogError("on error ", e);
+//         };
 
-        this.ws = ws;
-    }
+//         this.ws = ws;
+//     }
 
-    retryConnection() {
-        if (this.ws && (this.ws.readyState == this.ws.CONNECTING || this.ws.readyState == this.ws.OPEN)) {
-            this.mLogger.Log("Already trying to connect or connected");
-            return;
-        }
+//     retryConnection() {
+//         if (this.ws && (this.ws.readyState == this.ws.CONNECTING || this.ws.readyState == this.ws.OPEN)) {
+//             this.mLogger.Log("Already trying to connect or connected");
+//             return;
+//         }
 
-        this.connectWs();
-    }
+//         this.connectWs();
+//     }
 
 
-    updateWSToServer() {
+//     updateWSToServer() {
 
-    }//updatewstoserver
+//     }//updatewstoserver
 
-    sendCreateRoomRequest(pid: string, rid: string) {
-        this.ws.send(JSON.stringify({
-            request_type: RequestTypes.CREATE_ROOM,
-            room_id: rid,
-            fb_id: pid
-        }));
-        // if (this.ws.readyState == this.ws.OPEN) {
+//     sendCreateRoomRequest(pid: string, rid: string) {
+//         this.ws.send(JSON.stringify({
+//             request_type: RequestTypes.CREATE_ROOM,
+//             room_id: rid,
+//             fb_id: pid
+//         }));
+//         // if (this.ws.readyState == this.ws.OPEN) {
 
-        // } else {
-        //     this.retryConnection();
-        // }
-    }
+//         // } else {
+//         //     this.retryConnection();
+//         // }
+//     }
 
-    sendJoinRoomRequest(pid: string, rid: string) {
-        this.ws.send(JSON.stringify({
-            request_type: RequestTypes.JOIN_ROOM,
-            room_id: rid,
-            fb_id: pid
-        }));
+//     sendJoinRoomRequest(pid: string, rid: string) {
+//         this.ws.send(JSON.stringify({
+//             request_type: RequestTypes.JOIN_ROOM,
+//             room_id: rid,
+//             fb_id: pid
+//         }));
 
-        // if (this.ws.readyState == this.ws.OPEN) {
+//         // if (this.ws.readyState == this.ws.OPEN) {
 
-        // } else {
-        //     this.retryConnection();
-        // }
-    }
-}
+//         // } else {
+//         //     this.retryConnection();
+//         // }
+//     }
+// }

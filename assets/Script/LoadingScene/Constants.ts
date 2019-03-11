@@ -39,9 +39,20 @@ export class GameEvents {
     static ROOM_JOIN_SUCCESS: string = "room_join_success";
     static START_GAME: string = "start_game_success";
     static SERVER_ERR: string = "server_error";
+
+    //=====================
+
+    static ASSIGN_PLAYER: string = "asgn_player";
+    static UNLOCK_STRIKER: string = "unlock_strkr";
+    static LOCK_STRIKER: string = "lock_strkr";
+    static TAKE_SHOT: string = "take_shot";
+    static SYNC_PAWNS: string = "sync_pawns";
+    static UPDATE_SCORE: string = "update_score";
+    static POT: string = "pot";
 }
 
 export class RequestTypes {
     static CREATE_ROOM: string = "create_room";
     static JOIN_ROOM: string = "join_room";
+    static REQUEST_TURN: string = "rqst_turn";
 }

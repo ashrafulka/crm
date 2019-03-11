@@ -49,7 +49,13 @@ export default class ControlManager extends cc.Component {
         this.striker.strickerBody.on(cc.Node.EventType.TOUCH_MOVE, this.OnStrickerDrag.bind(this));
         this.striker.strickerBody.on(cc.Node.EventType.TOUCH_END, this.OnStrikerDragEnd.bind(this));
         this.striker.strickerBody.on(cc.Node.EventType.TOUCH_CANCEL, this.OnStrikerDragEnd.bind(this));
+
+        this.striker.node.active = false;
     }//onLoad
+
+    unlockStriker() {
+        this.striker.node.active = true;
+    }
 
     start() {
         this.mBoardManager = this.getComponent(BoardManager);

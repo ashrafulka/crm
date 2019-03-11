@@ -57,11 +57,6 @@ export default class LoadingComponent extends cc.Component {
         this.labelText.string = "Connecting...please wait";
         this.mPersistentNode.GetGameState().ChangeState(States.LOGGING_IN);
         this.mPersistentNode.LoadAndLogin();
-
-        //console.log("Connecting to socket connection");
-        //var sConn = new SocketConnection(Constants.HEROKU_SRVR_ADDR);
-        //sConn.connectSocket();
-        //console.log("should be connected now");
     }
 
     OnSuccessfulLogin() {

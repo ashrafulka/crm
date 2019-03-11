@@ -5,6 +5,8 @@ import WaitingPanelComponent from "../UI/WaitingPanelComponent";
 import { WSConnection, SocketConnection } from "../LoadingScene/Connection";
 import { Logger } from "../LoadingScene/Logger";
 import BoardManager from "./BoardManager";
+import { Player } from "../Player";
+import { PawnType } from "../Pawn";
 
 const { ccclass, property } = cc._decorator;
 
@@ -53,7 +55,12 @@ export default class GameSceneComponent extends cc.Component {
 
                 if (entryPointData != null && entryPointData.room_id) { //2nd player
                     self.mLogger.Log("JOIN ROOM REQUEST");
-                    socketConn.sendRoomJoinRequest(self.mPersistentNode.GetPlayerModel().getID(), self.mPersistentNode.GetCurrentGameModel().GetRoomID());
+                    socketConn.sendRoomJoinRequest(self.mPersistentNode.GetPlayerModel().getID(),
+                        self.mPersistentNode.GetPlayerModel().getName(),
+                        self.mPersistentNode.GetCurrentGameModel().GetRoomID(),
+                        self.mPersistentNode.GetCurrentGameModel().GetInitiatorID(),
+                        self.mPersistentNode.GetCurrentGameModel().GetInitatorName()
+                    );
                     self.mPersistentNode.node.on(GameEvents.ROOM_JOIN_SUCCESS, self.OnRoomCreationSuccess, self);
                 } else { //1st player
                     self.mLogger.Log("CREATING ROOM REQUEST");
@@ -89,11 +96,23 @@ export default class GameSceneComponent extends cc.Component {
         this.mPersistentNode.node.off(GameEvents.ROOM_CREATION_SUCCESS, this.OnRoomCreationSuccess, this);
     }
 
-    OnGameStartCall() {
-        this.mLogger.Log("YOOOO:::::Game should start now");
+    OnGameStartCall(body: any) {
         this.waitingPanelNode.active = false;
         this.failedToConnectNode.active = false;
-        // start game here
+
+        this.mBoardManager.mPlayerPool.push(new Player(body.p1_id, body.p1_name));
+        this.mBoardManager.mPlayerPool.push(new Player(body.p2_id, body.p2_name));
+
+        if (body.unlock_id == this.mPersistentNode.GetPlayerModel().getID()) {
+            //unlock striker for this player, initiate as main player
+            this.mBoardManager.Initialize1v1Players(0, 0);
+        } else {
+            this.mBoardManager.Initialize1v1Players(1, 0);
+        }
+
+        this.mBoardManager.ApplyTurn();
+        this.mBoardManager.mPlayerPool[this.mBoardManager.mCurrentTurnIndex].SetType(PawnType.WHITE);
+        this.mBoardManager.mPlayerPool[(this.mBoardManager.mCurrentTurnIndex + 1) % this.mBoardManager.mPlayerPool.length].SetType(PawnType.BLACK);
 
         this.mPersistentNode.node.off(GameEvents.START_GAME, this.OnGameStartCall, this);
     }
