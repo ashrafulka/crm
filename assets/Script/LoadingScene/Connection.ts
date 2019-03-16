@@ -128,7 +128,13 @@ export class SocketConnection {
             self.mPersistentNode.node.emit(GameEvents.SERVER_ERR, data);
         });
 
+        socket.on(GameEvents.TAKE_SHOT, function (data) {
+            self.mLogger.Log("taking shottt:::: ", data);
+            self.mPersistentNode.node.emit(GameEvents.TAKE_SHOT, data.body);
+        });
+
         this.mySocket = socket;
+        this.mPersistentNode.SaveSocketConnection(this.mySocket);
     }
 
     sendRoomJoinRequest(pid: string, pName: string, rid: string, initiatorID: string, rmMasterName: string) {
@@ -157,6 +163,23 @@ export class SocketConnection {
                 player_id: pid
             });
     }
+
+    sendNewShotRequest(fVector: cc.Vec2, magnitude: number) {
+        if (!this.mySocket || this.mySocket.mIsConnected) {
+            this.mLogger.LogError("web socket isnt added");
+            return;
+        }
+
+        this.mySocket.emit(RequestTypes.NEW_SHOT, {
+            request_type: RequestTypes.NEW_SHOT,
+            room_id: this.mPersistentNode.GetCurrentGameModel().GetRoomID(),
+            player_id: this.mPersistentNode.GetPlayerModel().getID(),
+            force_x: fVector.x,
+            force_y: fVector.y,
+            mag: magnitude
+        });
+    }
+
 }
 
 // export class WSConnection {

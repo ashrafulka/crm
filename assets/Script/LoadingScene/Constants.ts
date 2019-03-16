@@ -55,4 +55,5 @@ export class RequestTypes {
     static CREATE_ROOM: string = "create_room";
     static JOIN_ROOM: string = "join_room";
     static REQUEST_TURN: string = "rqst_turn";
+    static NEW_SHOT: string = "new_shot";
 }

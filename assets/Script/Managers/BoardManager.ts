@@ -48,7 +48,7 @@ export default class BoardManager extends cc.Component {
     mIsValidPotPending: boolean = false;
 
     onLoad() {
-        //this.mStrikerDistanceFromMid = Math.abs(this.striker.strickerBody.getPosition().y);
+        this.mStrikerDistanceFromMid = Math.abs(this.striker.strickerBody.getPosition().y);
     }
 
     start() {
@@ -56,7 +56,9 @@ export default class BoardManager extends cc.Component {
         this.mLogger = new Logger(this.node.name);
         this.mPersistentNode = cc.find(Constants.PERSISTENT_NODE_NAME).getComponent(PersistentNodeComponent);
         this.striker.node.active = false;
-        this.Initialize(GameType.CARROM); //it should be called from persistent component
+        //this.Initialize(GameType.CARROM); //it should be called from persistent component
+
+        this.mPersistentNode.node.on(GameEvents.TAKE_SHOT, this.PropagateStrikerShot, this);
 
         //this.InitializePlayers();
 
@@ -65,122 +67,7 @@ export default class BoardManager extends cc.Component {
         //this.mPlayerPool[(this.mCurrentTurnIndex + 1) % this.mPlayerPool.length].SetType(PawnType.BLACK);
     }
 
-    Initialize(gameType: GameType) {
-        switch (gameType) {
-            case GameType.CARROM:
-                this.InitializeCarromBoard();
-                break;
-            case GameType.RANDOM:
-                //this.initializeRandomBoard();
-                break;
-        }
-    }
-
-    IsStrikerMoving() {
-        if (!this.striker.mStrikerRigidBody) {
-            console.warn("couldnt find rigid body");
-            return false;
-        }
-
-        if (this.striker.mStrikerRigidBody.linearVelocity == cc.Vec2.ZERO) {
-            return false;
-        }
-
-        return true;
-    }
-
-    Initialize1v1Players(personalIndex: number, currentTurnIndex: number) {
-        this.mPersonalIndex = personalIndex;
-        this.mCurrentTurnIndex = currentTurnIndex;
-        switch (this.mPersonalIndex) {
-            case 1: // TOP player
-                this.boardBody.angle = 180;
-                break;
-            case 0:
-                this.boardBody.angle = 0;
-                break;
-            default:
-                break;
-        }
-
-        this.mPlayerPool[this.mCurrentTurnIndex].SetType(PawnType.WHITE);
-        this.mPlayerPool[(this.mCurrentTurnIndex + 1) % this.mPlayerPool.length].SetType(PawnType.BLACK);
-    }
-
-    HandleNextTurn() {
-        if (this.mIsGameOver) {
-            return;
-        }
-        if (this.mIsValidPotPending == false) {
-            this.mCurrentTurnIndex = ((this.mCurrentTurnIndex + 1) % this.mPlayerPool.length);
-        }
-
-        //hand over current turn
-        this.striker.ResetStriker();
-        this.ApplyTurn();
-    }
-
-    OnStrikerHit() {
-        this.mIsValidPotPending = false; // release
-    }
-
-    ApplyTurn() {
-        //update striker pos
-        this.UpdateStrikerPos();
-    }
-
-    private UpdateStrikerPos() {
-        switch (this.mCurrentTurnIndex) {
-            case 1: // TOP Player
-                this.striker.strickerBody.setPosition(0, this.mStrikerDistanceFromMid);
-                break;
-            case 0:
-                this.striker.strickerBody.setPosition(0, -this.mStrikerDistanceFromMid);
-                break;
-        }
-    }
-
-    private IsBoardEmpty(): boolean {
-        return (this.mBlackPotCount == this.mWhitePotCount) && (this.mBlackPotCount == this.MAX_PAWN_PER_TYPE_COUNT);
-    }
-
-    private ProcessGameOver() {
-        this.mIsGameOver = true;
-        if (this.IsBoardEmpty()) { //TODO
-            //compare score
-            let winnerIndex = -1;
-            let currHighestScore = 0;
-            for (let i = 0; i < this.mPlayerPool.length; i++) {
-                if (this.mPlayerPool[i].GetScore() > currHighestScore) {
-                    currHighestScore = this.mPlayerPool[i].GetScore();
-                    winnerIndex = i;
-                }
-            }
-
-            console.log("WINNER :  " + this.mPlayerPool[winnerIndex].GetName());
-            return;
-        }
-
-        let winType = PawnType.NONE;
-        if (this.mBlackPotCount >= this.MAX_PAWN_PER_TYPE_COUNT) {
-            winType = PawnType.BLACK;
-        } else if (this.mWhitePotCount >= this.MAX_PAWN_PER_TYPE_COUNT) {
-            winType = PawnType.WHITE;
-        }
-
-        for (let i = 0; i < this.mPlayerPool.length; i++) {
-            if (this.mPlayerPool[i].GetCurrentPawnType() == winType) {
-                console.log("WINNER :  " + this.mPlayerPool[i].GetName());
-                break;
-            }
-        }
-    }
-
-    private UpdateScoreUI() {
-        this.scoreLabels[this.mCurrentTurnIndex].string = this.mPlayerPool[this.mCurrentTurnIndex].GetName() + " : " + this.mPlayerPool[this.mCurrentTurnIndex].GetScore();
-    }
-
-    private InitializeCarromBoard() {
+    InitializeCarromBoard() {
         this.mAllPawnPool.length = 0;
         let pawnNode = cc.instantiate(this.pawnPrefab);
         let r = pawnNode.getComponent(cc.CircleCollider).radius;
@@ -232,6 +119,139 @@ export default class BoardManager extends cc.Component {
                 break;
             }
         }//for
+    }
+
+    onDisable() {
+        this.mPersistentNode.node.off(GameEvents.TAKE_SHOT, this.PropagateStrikerShot, self);
+    }
+
+    // Initialize(gameType: GameType) {
+    //     switch (gameType) {
+    //         case GameType.CARROM:
+    //             this.InitializeCarromBoard();
+    //             break;
+    //         case GameType.RANDOM:
+    //             //this.initializeRandomBoard();
+    //             break;
+    //     }
+    // }
+
+    IsStrikerMoving() {
+        if (!this.striker.mStrikerRigidBody) {
+            console.warn("couldnt find rigid body");
+            return false;
+        }
+
+        if (this.striker.mStrikerRigidBody.linearVelocity == cc.Vec2.ZERO) {
+            return false;
+        }
+
+        return true;
+    }
+
+    Initialize1v1Players(personalIndex: number, currentTurnIndex: number) {
+        this.mPersonalIndex = personalIndex;
+        this.mCurrentTurnIndex = currentTurnIndex;
+        switch (this.mPersonalIndex) {
+            case 1: // TOP player
+                this.boardBody.angle = 180;
+                break;
+            case 0:
+                this.boardBody.angle = 0;
+                break;
+            default:
+                break;
+        }
+
+        this.mPlayerPool[this.mCurrentTurnIndex].SetType(PawnType.WHITE);
+        this.mPlayerPool[(this.mCurrentTurnIndex + 1) % this.mPlayerPool.length].SetType(PawnType.BLACK);
+    }
+
+    HandleNextTurn() {
+        if (this.mIsGameOver) {
+            return;
+        }
+        if (this.mIsValidPotPending == false) {
+            this.mCurrentTurnIndex = ((this.mCurrentTurnIndex + 1) % this.mPlayerPool.length);
+        }
+
+        //hand over current turn
+        this.striker.ResetStriker();
+        this.ApplyTurn();
+    }
+
+    OnStrikerHit(forceVec: cc.Vec2, magnitude: number) {
+        this.mIsValidPotPending = false; // release
+        this.mPersistentNode.GetSocketConnection().sendNewShotRequest(forceVec, magnitude);
+    }
+
+    PropagateStrikerShot(body: any) {
+        console.log("received body::: ", body);
+        console.log("comparing :::: ", body.player_id, this.mPersistentNode.GetPlayerModel().getID());
+        if (body.player_id !== this.mPersistentNode.GetPlayerModel().getID()) {
+            console.log("PROPAGATING FOR ::: " + this.mPersistentNode.GetPlayerModel().getName());
+            this.striker.ApplyForce(new cc.Vec2(body.force_x, body.force_y), body.mag);
+        }
+    }
+
+    ApplyTurn() {
+        //update striker pos
+        console.log("applying turn, ", this.mCurrentTurnIndex);
+        this.UpdateStrikerPos();
+    }
+
+    private UpdateStrikerPos() {
+        if (this.mCurrentTurnIndex == 0) {
+            this.striker.node.active = true;
+            this.striker.strickerBody.setPosition(0, this.mStrikerDistanceFromMid);
+            return;
+        } else if (this.mCurrentTurnIndex == 1) {
+            this.striker.node.active = true;
+            this.striker.strickerBody.setPosition(0, -this.mStrikerDistanceFromMid);
+            return;
+        }
+
+        this.striker.node.active = false;
+    }
+
+    private IsBoardEmpty(): boolean {
+        return (this.mBlackPotCount == this.mWhitePotCount) && (this.mBlackPotCount == this.MAX_PAWN_PER_TYPE_COUNT);
+    }
+
+    private ProcessGameOver() {
+        this.mIsGameOver = true;
+        if (this.IsBoardEmpty()) { //TODO
+            //compare score
+            let winnerIndex = -1;
+            let currHighestScore = 0;
+            for (let i = 0; i < this.mPlayerPool.length; i++) {
+                if (this.mPlayerPool[i].GetScore() > currHighestScore) {
+                    currHighestScore = this.mPlayerPool[i].GetScore();
+                    winnerIndex = i;
+                }
+            }
+
+            console.log("WINNER :  " + this.mPlayerPool[winnerIndex].GetName());
+            return;
+        }
+
+        let winType = PawnType.NONE;
+        if (this.mBlackPotCount >= this.MAX_PAWN_PER_TYPE_COUNT) {
+            winType = PawnType.BLACK;
+        } else if (this.mWhitePotCount >= this.MAX_PAWN_PER_TYPE_COUNT) {
+            winType = PawnType.WHITE;
+        }
+
+        for (let i = 0; i < this.mPlayerPool.length; i++) {
+            if (this.mPlayerPool[i].GetCurrentPawnType() == winType) {
+                console.log("WINNER :  " + this.mPlayerPool[i].GetName());
+                break;
+            }
+        }
+    }
+
+    private UpdateScoreUI() {
+        this.scoreLabels[this.mCurrentTurnIndex].string = this.mPlayerPool[this.mCurrentTurnIndex].GetName() + " : " + this.mPlayerPool[this.mCurrentTurnIndex].GetScore();
     }
 
     private TogglePawnType(ct: number) {

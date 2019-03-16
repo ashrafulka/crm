@@ -2,7 +2,7 @@ import PersistentNodeComponent from "../LoadingScene/PersistentNodeComponent";
 import { Constants, AllGameModes, GameEvents, ConnectionStrings } from "../LoadingScene/Constants";
 import { States } from "../LoadingScene/GameState";
 import WaitingPanelComponent from "../UI/WaitingPanelComponent";
-import { WSConnection, SocketConnection } from "../LoadingScene/Connection";
+import { SocketConnection } from "../LoadingScene/Connection";
 import { Logger } from "../LoadingScene/Logger";
 import BoardManager from "./BoardManager";
 import { Player } from "../Player";
@@ -99,9 +99,11 @@ export default class GameSceneComponent extends cc.Component {
     OnGameStartCall(body: any) {
         this.waitingPanelNode.active = false;
         this.failedToConnectNode.active = false;
+        this.waitingPanelNode.getComponent(WaitingPanelComponent).clear();
 
         this.mBoardManager.mPlayerPool.push(new Player(body.p1_id, body.p1_name));
         this.mBoardManager.mPlayerPool.push(new Player(body.p2_id, body.p2_name));
+        this.mBoardManager.InitializeCarromBoard();
 
         if (body.unlock_id == this.mPersistentNode.GetPlayerModel().getID()) {
             //unlock striker for this player, initiate as main player

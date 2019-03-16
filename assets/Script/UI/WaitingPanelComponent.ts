@@ -32,5 +32,11 @@ export default class WaitingPanelComponent extends cc.Component {
         }, 1000);
     }
 
+    clear() {
+        if (this.mIntervalLoop) {
+            clearInterval(this.mIntervalLoop);
+        }
+    }
+
 
 }
