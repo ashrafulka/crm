@@ -30,6 +30,10 @@ export class Player {
         return this.mScore;
     }
 
+    SetScore(newScore) {
+        this.mScore = newScore;
+    }
+
     SetType(type: PawnType) {
         this.mPawnType = type;
     }

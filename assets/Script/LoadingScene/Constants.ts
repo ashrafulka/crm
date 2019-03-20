@@ -43,12 +43,12 @@ export class GameEvents {
     //=====================
 
     static ASSIGN_PLAYER: string = "asgn_player";
-    static UNLOCK_STRIKER: string = "unlock_strkr";
-    static LOCK_STRIKER: string = "lock_strkr";
+    //static UNLOCK_STRIKER: string = "unlock_strkr";
+    static UPDATE_TURN: string = "update_turn";
     static TAKE_SHOT: string = "take_shot";
-    static SYNC_PAWNS: string = "sync_pawns";
+    //static SYNC_PAWNS: string = "sync_pawns";
     static UPDATE_SCORE: string = "update_score";
-    static POT: string = "pot";
+    //static POT: string = "pot";
 }
 
 export class RequestTypes {
@@ -56,4 +56,5 @@ export class RequestTypes {
     static JOIN_ROOM: string = "join_room";
     static REQUEST_TURN: string = "rqst_turn";
     static NEW_SHOT: string = "new_shot";
+    static UPDATE_SCORE: string = "up_score_req";
 }

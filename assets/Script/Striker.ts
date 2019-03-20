@@ -11,14 +11,17 @@ export default class Striker extends cc.Component {
     midPos: cc.Node = null;
 
     @property(cc.Node)
-    strickerBody: cc.Node = null;
+    strikerNode: cc.Node = null;
 
     mStrikerRigidBody: cc.RigidBody = null;
+    mPhysicsComponent: cc.PhysicsCircleCollider = null;
 
     private mFullSpanX: number = 0;
 
     onLoad() {
-        this.mStrikerRigidBody = this.strickerBody.getComponent(cc.RigidBody);
+        this.mStrikerRigidBody = this.strikerNode.getComponent(cc.RigidBody);
+        this.mPhysicsComponent = this.strikerNode.getComponent(cc.PhysicsCircleCollider);
+        //console.log("physics component :: " + this.mPhysicsComponent.density);
     }
 
     start() {
@@ -26,17 +29,17 @@ export default class Striker extends cc.Component {
     }
 
     ApplyForce(forceVector: cc.Vec2, forceAmount: number) {
-        this.strickerBody.getComponent(cc.RigidBody).applyForceToCenter(new cc.Vec2(forceVector.x * forceAmount, forceVector.y * forceAmount), true);
+        this.strikerNode.getComponent(cc.RigidBody).applyForceToCenter(new cc.Vec2(forceVector.x * forceAmount, forceVector.y * forceAmount), true);
     }
 
     ResetStriker() {
-        this.strickerBody.position = this.midPos.position;
+        this.strikerNode.position = this.midPos.position;
         //this.strickerBody.getComponent(cc.RigidBody).applyLinearImpulse(new cc.Vec2(0,3000), cc.Vec2.ZERO, true);
         this.mStrikerRigidBody.angularVelocity = 0;
         this.mStrikerRigidBody.linearVelocity = cc.Vec2.ZERO;
     }
 
     OnSlide(progress: number) {
-        this.strickerBody.x = this.mFullSpanX * progress - Math.abs(this.rightBoundary.x);
+        this.strikerNode.x = this.mFullSpanX * progress - Math.abs(this.rightBoundary.x);
     }
 }

@@ -7,11 +7,16 @@ import { Logger } from "../LoadingScene/Logger";
 import BoardManager from "./BoardManager";
 import { Player } from "../Player";
 import { PawnType } from "../Pawn";
+import DevUI from "../UI/DevUI";
+import Helper from "../Helpers/Helper";
 
 const { ccclass, property } = cc._decorator;
 
 @ccclass
 export default class GameSceneComponent extends cc.Component {
+
+    @property(cc.Button)
+    devToolBtn: cc.Button = null;
 
     @property(cc.Node)
     waitingPanelNode: cc.Node = null;
@@ -22,12 +27,47 @@ export default class GameSceneComponent extends cc.Component {
     mBoardManager: BoardManager = null;
     mPersistentNode: PersistentNodeComponent = null;
     mLogger: Logger = null;
+    mIsDebugMode: boolean = false;
+
+    mDevUI: DevUI = null;
+
+    onLoad() {
+        let pNode = cc.find(Constants.PERSISTENT_NODE_NAME);
+        if (pNode) {
+            this.mPersistentNode = pNode.getComponent(PersistentNodeComponent);
+            this.mIsDebugMode = false;
+        } else {
+            this.mIsDebugMode = true;
+        }
+    }
 
     start() {
-        this.mLogger = new Logger(this.node.name);
-        this.mPersistentNode = cc.find(Constants.PERSISTENT_NODE_NAME).getComponent(PersistentNodeComponent);
-        this.mBoardManager = this.node.getComponent(BoardManager);
 
+        this.mLogger = new Logger(this.node.name);
+        this.mBoardManager = this.node.getComponent(BoardManager);
+        this.mDevUI = this.node.getComponent(DevUI);
+
+        this.devToolBtn.clickEvents.push(Helper.getEventHandler(this.node, "GameSceneComponent", "OnDevToolBtnClick"));
+
+        if (this.mIsDebugMode) {
+            this.mBoardManager.mPlayerPool.push(new Player("id0", "p0")); // room master
+            this.mBoardManager.mPlayerPool.push(new Player("id1", "p1")); // 2nd player
+
+            this.mBoardManager.InitializeCarromBoard();
+            this.mBoardManager.UpdateScore({
+                p1_score: 0,
+                p2_score: 0
+            });
+
+            this.mBoardManager.Initialize1v1Players(0, 0);
+
+            this.mBoardManager.ApplyTurn();
+            this.mBoardManager.mPlayerPool[this.mBoardManager.mCurrentTurnIndex].SetType(PawnType.WHITE);
+            this.mBoardManager.mPlayerPool[(this.mBoardManager.mCurrentTurnIndex + 1) % this.mBoardManager.mPlayerPool.length].SetType(PawnType.BLACK);
+            return;
+        }
+
+        this.mPersistentNode = cc.find(Constants.PERSISTENT_NODE_NAME).getComponent(PersistentNodeComponent);
         let entryPointData = this.mPersistentNode.GetPlayerModel().getEntryPointData();
         let gameModel = this.mPersistentNode.GetCurrentGameModel();
 
@@ -101,9 +141,14 @@ export default class GameSceneComponent extends cc.Component {
         this.failedToConnectNode.active = false;
         this.waitingPanelNode.getComponent(WaitingPanelComponent).clear();
 
-        this.mBoardManager.mPlayerPool.push(new Player(body.p1_id, body.p1_name));
-        this.mBoardManager.mPlayerPool.push(new Player(body.p2_id, body.p2_name));
+        this.mBoardManager.mPlayerPool.push(new Player(body.p1_id, body.p1_name)); // room master
+        this.mBoardManager.mPlayerPool.push(new Player(body.p2_id, body.p2_name)); // 2nd player
+
         this.mBoardManager.InitializeCarromBoard();
+        this.mBoardManager.UpdateScore({
+            p1_score: 0,
+            p2_score: 0
+        });
 
         if (body.unlock_id == this.mPersistentNode.GetPlayerModel().getID()) {
             //unlock striker for this player, initiate as main player
@@ -121,6 +166,10 @@ export default class GameSceneComponent extends cc.Component {
 
     OnServerErr(data) {
         this.mLogger.LogError("Server ERROR: " + data);
+    }
+
+    OnDevToolBtnClick() {
+        this.mDevUI.ShowPanel();
     }
 
 }

@@ -47,21 +47,32 @@ export default class BoardManager extends cc.Component {
     mIsGameOver: boolean = false;
     mIsValidPotPending: boolean = false;
 
+    myID: string = "";
+    mIsDebugMode: boolean = false;
+
     onLoad() {
-        this.mStrikerDistanceFromMid = Math.abs(this.striker.strickerBody.getPosition().y);
+        this.mStrikerDistanceFromMid = Math.abs(this.striker.strikerNode.getPosition().y);
+
+        let pNode = cc.find(Constants.PERSISTENT_NODE_NAME);
+
+        if (pNode) {
+            this.mPersistentNode = pNode.getComponent(PersistentNodeComponent);
+            this.mPersistentNode.node.on(GameEvents.TAKE_SHOT, this.PropagateStrikerShot, this);
+            this.mPersistentNode.node.on(GameEvents.UPDATE_TURN, this.HandleNextTurn, this);
+            this.mPersistentNode.node.on(GameEvents.UPDATE_SCORE, this.UpdateScore, this);
+
+            this.myID = this.mPersistentNode.GetPlayerModel().getID();
+        } else {
+            this.mIsDebugMode = true;
+        }
     }
 
     start() {
         this.mAllPawnPool.length = 0; //reset
         this.mLogger = new Logger(this.node.name);
-        this.mPersistentNode = cc.find(Constants.PERSISTENT_NODE_NAME).getComponent(PersistentNodeComponent);
+
         this.striker.node.active = false;
-        //this.Initialize(GameType.CARROM); //it should be called from persistent component
-
-        this.mPersistentNode.node.on(GameEvents.TAKE_SHOT, this.PropagateStrikerShot, this);
-
         //this.InitializePlayers();
-
         //this.ApplyTurn();
         //this.mPlayerPool[this.mCurrentTurnIndex].SetType(PawnType.WHITE);
         //this.mPlayerPool[(this.mCurrentTurnIndex + 1) % this.mPlayerPool.length].SetType(PawnType.BLACK);
@@ -121,20 +132,13 @@ export default class BoardManager extends cc.Component {
         }//for
     }
 
-    onDisable() {
-        this.mPersistentNode.node.off(GameEvents.TAKE_SHOT, this.PropagateStrikerShot, self);
-    }
+    onDestroy() {
+        if (this.mIsDebugMode) return;
 
-    // Initialize(gameType: GameType) {
-    //     switch (gameType) {
-    //         case GameType.CARROM:
-    //             this.InitializeCarromBoard();
-    //             break;
-    //         case GameType.RANDOM:
-    //             //this.initializeRandomBoard();
-    //             break;
-    //     }
-    // }
+        this.mPersistentNode.node.off(GameEvents.TAKE_SHOT, this.PropagateStrikerShot, self);
+        this.mPersistentNode.node.off(GameEvents.UPDATE_TURN, this.HandleNextTurn, this);
+        this.mPersistentNode.node.off(GameEvents.UPDATE_SCORE, this.UpdateScore, this);
+    }
 
     IsStrikerMoving() {
         if (!this.striker.mStrikerRigidBody) {
@@ -152,6 +156,7 @@ export default class BoardManager extends cc.Component {
     Initialize1v1Players(personalIndex: number, currentTurnIndex: number) {
         this.mPersonalIndex = personalIndex;
         this.mCurrentTurnIndex = currentTurnIndex;
+
         switch (this.mPersonalIndex) {
             case 1: // TOP player
                 this.boardBody.angle = 180;
@@ -165,14 +170,24 @@ export default class BoardManager extends cc.Component {
 
         this.mPlayerPool[this.mCurrentTurnIndex].SetType(PawnType.WHITE);
         this.mPlayerPool[(this.mCurrentTurnIndex + 1) % this.mPlayerPool.length].SetType(PawnType.BLACK);
+
     }
 
-    HandleNextTurn() {
+    HandleNextTurn(next_turn_id: string) {
         if (this.mIsGameOver) {
             return;
         }
-        if (this.mIsValidPotPending == false) {
-            this.mCurrentTurnIndex = ((this.mCurrentTurnIndex + 1) % this.mPlayerPool.length);
+
+        if (this.mIsDebugMode) {
+            if (this.mIsValidPotPending == false) {
+                this.mCurrentTurnIndex = ((this.mCurrentTurnIndex + 1) % this.mPlayerPool.length);
+            }
+        } else {
+            if (this.myID == this.mPlayerPool[0].GetID()) {
+                this.mCurrentTurnIndex = (next_turn_id == this.myID) ? 0 : 1;
+            } else if (this.myID == this.mPlayerPool[1].GetID()) {
+                this.mCurrentTurnIndex = next_turn_id == this.myID ? 1 : 0;
+            }
         }
 
         //hand over current turn
@@ -182,16 +197,25 @@ export default class BoardManager extends cc.Component {
 
     OnStrikerHit(forceVec: cc.Vec2, magnitude: number) {
         this.mIsValidPotPending = false; // release
-        this.mPersistentNode.GetSocketConnection().sendNewShotRequest(forceVec, magnitude);
+
+        if (this.mIsDebugMode == false) {
+            this.mPersistentNode.GetSocketConnection().sendNewShotRequest(forceVec, magnitude);
+        }
     }
 
     PropagateStrikerShot(body: any) {
-        console.log("received body::: ", body);
         console.log("comparing :::: ", body.player_id, this.mPersistentNode.GetPlayerModel().getID());
         if (body.player_id !== this.mPersistentNode.GetPlayerModel().getID()) {
             console.log("PROPAGATING FOR ::: " + this.mPersistentNode.GetPlayerModel().getName());
             this.striker.ApplyForce(new cc.Vec2(body.force_x, body.force_y), body.mag);
         }
+    }
+
+    UpdateScore(body: any) {
+        this.mPlayerPool[0].SetScore(body.p1_score);
+        this.mPlayerPool[1].SetScore(body.p2_score);
+
+        this.UpdateScoreUI();
     }
 
     ApplyTurn() {
@@ -203,11 +227,11 @@ export default class BoardManager extends cc.Component {
     private UpdateStrikerPos() {
         if (this.mCurrentTurnIndex == 0) {
             this.striker.node.active = true;
-            this.striker.strickerBody.setPosition(0, this.mStrikerDistanceFromMid);
+            this.striker.strikerNode.setPosition(0, this.mStrikerDistanceFromMid);
             return;
         } else if (this.mCurrentTurnIndex == 1) {
             this.striker.node.active = true;
-            this.striker.strickerBody.setPosition(0, -this.mStrikerDistanceFromMid);
+            this.striker.strikerNode.setPosition(0, -this.mStrikerDistanceFromMid);
             return;
         }
 
@@ -250,8 +274,18 @@ export default class BoardManager extends cc.Component {
         }
     }
 
-    private UpdateScoreUI() {
-        this.scoreLabels[this.mCurrentTurnIndex].string = this.mPlayerPool[this.mCurrentTurnIndex].GetName() + " : " + this.mPlayerPool[this.mCurrentTurnIndex].GetScore();
+    UpdateScoreUI() {
+        if (this.mIsDebugMode) {
+            this.scoreLabels[this.mCurrentTurnIndex].string = this.mPlayerPool[this.mCurrentTurnIndex].GetName() + " : " + this.mPlayerPool[this.mCurrentTurnIndex].GetScore();
+        } else {
+            if (this.mPlayerPool[0].GetID() == this.mPersistentNode.GetPlayerModel().getID()) {
+                this.scoreLabels[0].string = this.mPlayerPool[0].GetName() + " **: " + this.mPlayerPool[0].GetScore();
+                this.scoreLabels[1].string = this.mPlayerPool[1].GetName() + " : " + this.mPlayerPool[1].GetScore();
+            } else if (this.mPlayerPool[1].GetID() == this.mPersistentNode.GetPlayerModel().getID()) {
+                this.scoreLabels[0].string = this.mPlayerPool[1].GetName() + " : " + this.mPlayerPool[1].GetScore();
+                this.scoreLabels[1].string = this.mPlayerPool[0].GetName() + " **: " + this.mPlayerPool[0].GetScore();
+            }
+        }
     }
 
     private TogglePawnType(ct: number) {
@@ -307,6 +341,15 @@ export default class BoardManager extends cc.Component {
 
         this.mIsValidPotPending = true;
         pawn.SetPotPlayer(this.mPlayerPool[this.mCurrentTurnIndex]);
+
+        if (this.mIsDebugMode == false) {
+            this.mPersistentNode.GetSocketConnection().sendScoreUpdate(
+                this.mPlayerPool[0].GetScore(),
+                this.mPlayerPool[0].GetID(),
+                this.mPlayerPool[1].GetScore(),
+                this.mPlayerPool[1].GetID()
+            );
+        }
 
         this.UpdateScoreUI();
 

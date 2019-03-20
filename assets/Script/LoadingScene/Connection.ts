@@ -133,6 +133,16 @@ export class SocketConnection {
             self.mPersistentNode.node.emit(GameEvents.TAKE_SHOT, data.body);
         });
 
+        socket.on(GameEvents.UPDATE_TURN, function (data) {
+            self.mLogger.Log("updating turn:::: ", data);
+            self.mPersistentNode.node.emit(GameEvents.UPDATE_TURN, data.body.next_turn_id);
+        });
+
+        socket.on(GameEvents.UPDATE_SCORE, function (data) {
+            self.mLogger.Log("update:::score:::: ", data);
+            self.mPersistentNode.node.emit(GameEvents.UPDATE_SCORE, data.body);
+        });
+
         this.mySocket = socket;
         this.mPersistentNode.SaveSocketConnection(this.mySocket);
     }
@@ -141,31 +151,29 @@ export class SocketConnection {
         if (!this.mySocket)
             return;
 
-        this.mySocket.emit(RequestTypes.JOIN_ROOM,
-            {
-                request_type: RequestTypes.JOIN_ROOM,
-                room_id: rid,
-                player_id: pid,
-                player_name: pName,
-                room_master_id: initiatorID,
-                room_master_name: rmMasterName
-            });
+        this.mySocket.emit(RequestTypes.JOIN_ROOM, {
+            request_type: RequestTypes.JOIN_ROOM,
+            room_id: rid,
+            player_id: pid,
+            player_name: pName,
+            room_master_id: initiatorID,
+            room_master_name: rmMasterName
+        });
     }
 
     sendCreateRoomRequest(pid: string, rid: string) {
         if (!this.mySocket)
             return;
 
-        this.mySocket.emit(RequestTypes.CREATE_ROOM,
-            {
-                request_type: RequestTypes.CREATE_ROOM,
-                room_id: rid,
-                player_id: pid
-            });
+        this.mySocket.emit(RequestTypes.CREATE_ROOM, {
+            request_type: RequestTypes.CREATE_ROOM,
+            room_id: rid,
+            player_id: pid
+        });
     }
 
     sendNewShotRequest(fVector: cc.Vec2, magnitude: number) {
-        if (!this.mySocket || this.mySocket.mIsConnected) {
+        if (!this.mySocket) {
             this.mLogger.LogError("web socket isnt added");
             return;
         }
@@ -177,6 +185,37 @@ export class SocketConnection {
             force_x: fVector.x,
             force_y: fVector.y,
             mag: magnitude
+        });
+    }
+
+    sendNextTurnUpdate(id: string) {
+        if (!this.mySocket) {
+            this.mLogger.LogError("web socket isnt added, failed request : sendNextTurnUpdate");
+            return;
+        }
+
+        console.log("requesting next turn");
+        this.mySocket.emit(RequestTypes.REQUEST_TURN, {
+            request_type: RequestTypes.REQUEST_TURN,
+            room_id: this.mPersistentNode.GetCurrentGameModel().GetRoomID(),
+            player_id: this.mPersistentNode.GetPlayerModel().getID(),
+            next_turn_id: id
+        });
+    }
+
+    sendScoreUpdate(p1ScoreUpdate: number, p1id: string, p2ScoreUpdate: number, p2id: string) {
+        if (!this.mySocket) {
+            this.mLogger.LogError("web socket isnt added, failed request : sendNextTurnUpdate");
+            return;
+        }
+
+        this.mySocket.emit(RequestTypes.UPDATE_SCORE, {
+            request_type: RequestTypes.UPDATE_SCORE,
+            room_id: this.mPersistentNode.GetCurrentGameModel().GetRoomID(),
+            p1_id: p1id,
+            p2_id: p2id,
+            p1_score: p1ScoreUpdate,
+            p2_score: p2ScoreUpdate
         });
     }
 
