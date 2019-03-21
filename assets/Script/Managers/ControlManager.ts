@@ -103,23 +103,12 @@ export default class ControlManager extends cc.Component {
         this.controlSlider.enabled = false;
     }
 
-    // OnKeyDown(event) {
-    //     switch (event.keyCode) {
-    //         case cc.macro.KEY.space:
-    //             //this.controlSlider.progress = 0.5;
-    //             //this.gizmosComp.myGraphicsNode.clear();
-    //             //this.striker.ResetStriker();
-    //             //this.mBoardManager.HandleNextTurn();
-    //             break;
-    //         case cc.macro.KEY.a:
-    //             this.mBoardManager.HandleNextTurn();
-    //         default:
-    //             break;
-    //     }
-    // }
-
     OnStrickerDrag(event: cc.Event.EventTouch) {
-        //see if the striker is in a valid position first
+        if (this.mBoardManager.mIsMyShot == false) {
+            return;
+        }
+
+        ///TODO:: see if the striker is in a valid position first
         let touch = event.getTouches()[0];
         let clear = true;
         let touchDistance = Helper.getDistance(this.mStrikerCenter, touch.getLocation());
@@ -149,7 +138,7 @@ export default class ControlManager extends cc.Component {
         let magnitude = forceVector.mag();
 
         this.striker.ApplyForce(new cc.Vec2(forceVector.x * -1, forceVector.y * -1), magnitude * this.fixForceAmount);
-        this.mBoardManager.OnStrikerHit(new cc.Vec2(forceVector.x * -1, forceVector.y * -1), magnitude * this.fixForceAmount);
+        this.mBoardManager.OnStrikerHit(new cc.Vec2(forceVector.x, forceVector.y), magnitude * this.fixForceAmount);
 
         this.gizmosComp.myGraphicsNode.clear();
         this.mIsTouchStarted = false;

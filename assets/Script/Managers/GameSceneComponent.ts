@@ -50,16 +50,17 @@ export default class GameSceneComponent extends cc.Component {
         this.devToolBtn.clickEvents.push(Helper.getEventHandler(this.node, "GameSceneComponent", "OnDevToolBtnClick"));
 
         if (this.mIsDebugMode) {
+
+            this.mBoardManager.mIsMyShot = false;
             this.mBoardManager.mPlayerPool.push(new Player("id0", "p0")); // room master
             this.mBoardManager.mPlayerPool.push(new Player("id1", "p1")); // 2nd player
-
-            this.mBoardManager.InitializeCarromBoard();
             this.mBoardManager.UpdateScore({
                 p1_score: 0,
                 p2_score: 0
             });
 
             this.mBoardManager.Initialize1v1Players(0, 0);
+            this.mBoardManager.InitializeCarromBoard();
 
             this.mBoardManager.ApplyTurn();
             this.mBoardManager.mPlayerPool[this.mBoardManager.mCurrentTurnIndex].SetType(PawnType.WHITE);
@@ -143,20 +144,20 @@ export default class GameSceneComponent extends cc.Component {
 
         this.mBoardManager.mPlayerPool.push(new Player(body.p1_id, body.p1_name)); // room master
         this.mBoardManager.mPlayerPool.push(new Player(body.p2_id, body.p2_name)); // 2nd player
-
-        this.mBoardManager.InitializeCarromBoard();
         this.mBoardManager.UpdateScore({
             p1_score: 0,
             p2_score: 0
         });
 
         if (body.unlock_id == this.mPersistentNode.GetPlayerModel().getID()) {
-            //unlock striker for this player, initiate as main player
-            this.mBoardManager.Initialize1v1Players(0, 0);
+            this.mBoardManager.Initialize1v1Players(0, 0);//unlock striker for this player, initiate as main player
+            this.mBoardManager.mIsMyShot = true;
         } else {
+            this.mBoardManager.mIsMyShot = false;
             this.mBoardManager.Initialize1v1Players(1, 0);
         }
 
+        this.mBoardManager.InitializeCarromBoard();
         this.mBoardManager.ApplyTurn();
         this.mBoardManager.mPlayerPool[this.mBoardManager.mCurrentTurnIndex].SetType(PawnType.WHITE);
         this.mBoardManager.mPlayerPool[(this.mBoardManager.mCurrentTurnIndex + 1) % this.mBoardManager.mPlayerPool.length].SetType(PawnType.BLACK);

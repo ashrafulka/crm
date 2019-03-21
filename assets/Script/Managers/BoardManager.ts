@@ -49,6 +49,7 @@ export default class BoardManager extends cc.Component {
 
     myID: string = "";
     mIsDebugMode: boolean = false;
+    mIsMyShot: boolean = true;
 
     onLoad() {
         this.mStrikerDistanceFromMid = Math.abs(this.striker.strikerNode.getPosition().y);
@@ -56,6 +57,7 @@ export default class BoardManager extends cc.Component {
         let pNode = cc.find(Constants.PERSISTENT_NODE_NAME);
 
         if (pNode) {
+            this.mIsDebugMode = false;
             this.mPersistentNode = pNode.getComponent(PersistentNodeComponent);
             this.mPersistentNode.node.on(GameEvents.TAKE_SHOT, this.PropagateStrikerShot, this);
             this.mPersistentNode.node.on(GameEvents.UPDATE_TURN, this.HandleNextTurn, this);
@@ -85,13 +87,17 @@ export default class BoardManager extends cc.Component {
             }
         }
 
+        if (this.mIsMyShot == false) { //rotate pawnholder 120 degree
+            this.pawnHolder.rotation = 150;
+        }
+
         this.mAllPawnPool.length = 0;
         let pawnNode = cc.instantiate(this.pawnPrefab);
         let r = pawnNode.getComponent(cc.CircleCollider).radius;
         let d = r * 2;
 
         //let deltaX = Math.abs(r * 2 - ((r * 2) * Math.cos(45)));
-        let deltaY = Math.abs(r * 2 - ((r * 2) * Math.sin(45)));
+        let deltaY = Math.abs(d - ((d) * Math.sin(45)));
 
         let startPos = cc.Vec2.ZERO;
         startPos.x = -d; // first pawn
@@ -162,21 +168,8 @@ export default class BoardManager extends cc.Component {
     Initialize1v1Players(personalIndex: number, currentTurnIndex: number) {
         this.mPersonalIndex = personalIndex;
         this.mCurrentTurnIndex = currentTurnIndex;
-
-        switch (this.mPersonalIndex) {
-            case 1: // TOP player
-                this.boardBody.angle = 180;
-                break;
-            case 0:
-                this.boardBody.angle = 0;
-                break;
-            default:
-                break;
-        }
-
         this.mPlayerPool[this.mCurrentTurnIndex].SetType(PawnType.WHITE);
         this.mPlayerPool[(this.mCurrentTurnIndex + 1) % this.mPlayerPool.length].SetType(PawnType.BLACK);
-
     }
 
     HandleNextTurn(next_turn_id: string) {
@@ -185,9 +178,11 @@ export default class BoardManager extends cc.Component {
         }
 
         if (this.mIsDebugMode) {
+            console.warn("DEBUG MODE ON");
             if (this.mIsValidPotPending == false) {
                 this.mCurrentTurnIndex = ((this.mCurrentTurnIndex + 1) % this.mPlayerPool.length);
             }
+            this.mIsMyShot = true;
         } else {
             if (this.myID == this.mPlayerPool[0].GetID()) {
                 this.mCurrentTurnIndex = (next_turn_id == this.myID) ? 0 : 1;
@@ -195,14 +190,15 @@ export default class BoardManager extends cc.Component {
                 this.mCurrentTurnIndex = next_turn_id == this.myID ? 1 : 0;
             }
         }
-
-        //hand over current turn
+        this.mIsMyShot = (next_turn_id == this.myID); //take off control from player
+        console.log("is my shot::::: ", this.mIsMyShot);
         this.striker.ResetStriker();
         this.ApplyTurn();
     }
 
     OnStrikerHit(forceVec: cc.Vec2, magnitude: number) {
         this.mIsValidPotPending = false; // release
+        this.mIsMyShot = false;
 
         if (this.mIsDebugMode == false) {
             this.mPersistentNode.GetSocketConnection().sendNewShotRequest(forceVec, magnitude);
@@ -231,17 +227,23 @@ export default class BoardManager extends cc.Component {
     }
 
     private UpdateStrikerPos() {
-        if (this.mCurrentTurnIndex == 0) {
-            this.striker.node.active = true;
-            this.striker.strikerNode.setPosition(0, this.mStrikerDistanceFromMid);
-            return;
-        } else if (this.mCurrentTurnIndex == 1) {
-            this.striker.node.active = true;
-            this.striker.strikerNode.setPosition(0, -this.mStrikerDistanceFromMid);
-            return;
-        }
+        // if (this.mCurrentTurnIndex == 0) {
+        //     this.striker.node.active = true;
+        //     this.striker.strikerNode.setPosition(0, this.mStrikerDistanceFromMid);
+        //     return;
+        // } else if (this.mCurrentTurnIndex == 1) {
+        //     this.striker.node.active = true;
+        //     this.striker.strikerNode.setPosition(0, -this.mStrikerDistanceFromMid);
+        //     return;
+        // }
 
-        this.striker.node.active = false;
+
+        this.striker.node.active = true;
+        if (this.mIsMyShot) {
+            this.striker.strikerNode.setPosition(0, -this.mStrikerDistanceFromMid);
+        } else {
+            this.striker.strikerNode.setPosition(0, this.mStrikerDistanceFromMid);
+        }
     }
 
     private IsBoardEmpty(): boolean {
