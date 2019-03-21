@@ -41,6 +41,8 @@ export default class DevUI extends cc.Component {
     saveBtn: cc.Button = null;
     @property(cc.Button)
     closeBtn: cc.Button = null;
+    @property(cc.Button)
+    resetBtn: cc.Button = null;
 
     @property
     allKeys: Array<string> = [];
@@ -58,6 +60,7 @@ export default class DevUI extends cc.Component {
         this.mBoardManager = this.node.getComponent(BoardManager);
         this.saveBtn.clickEvents.push(Helper.getEventHandler(this.node, "DevUI", "OnSaveBtnClick"));
         this.closeBtn.clickEvents.push(Helper.getEventHandler(this.node, "DevUI", "OnCloseBtnClick"));
+        this.resetBtn.clickEvents.push(Helper.getEventHandler(this.node, "DevUI", "OnResetBtnClick"));
         for (let i = 0; i < this.allBars.length; i++) {
             this.allBars[i].slideEvents.push(Helper.getEventHandler(this.node, "DevUI", "OnBarSlide", i));
         }
@@ -74,10 +77,9 @@ export default class DevUI extends cc.Component {
     }
 
     LoadData(index) {
-        //cc.sys.localStorage.removeItem(this.allKeys[index]);\
+        //cc.sys.localStorage.removeItem(this.allKeys[index]);
         let data = cc.sys.localStorage.getItem(this.allKeys[index]);
         if (data != null) { //return data
-            console.log("saved value :::", data);
             let val = parseFloat(data);
             this.allProgress[index] = val;
             this.allLabels[index].string = val.toFixed(2);
@@ -132,44 +134,51 @@ export default class DevUI extends cc.Component {
     }//LoadData
 
     OnBarSlide(data, index) {
-        // console.log(data);
-        // return;
-        switch (index) {
-            case BarType.STRIKER_DENSITY:
-                console.log("controlling striker density: ", this.allBars[index].progress);
-                break;
-            case BarType.STRIKER_FRICTION:
-                console.log("controlling striker friction: ", this.allBars[index].progress);
-                break;
-            case BarType.STRIKER_BOUNCE:
-                console.log("controlling striker bounce: ", this.allBars[index].progress);
-                break;
-            case BarType.PAWN_DENSITY:
-                console.log("controlling pawn density: ", this.allBars[index].progress);
-                break;
-            case BarType.PAWN_FRICTION:
-                console.log("controlling pawn friction: ", this.allBars[index].progress);
-                break;
-            case BarType.PAWN_BOUNCE:
-                console.log("controlling pawn bounce: ", this.allBars[index].progress);
-                break;
-        }
-        //================
-
         let finalValue = this.allMins[index] + ((this.allMax[index] - this.allMins[index]) * this.allBars[index].progress);
         this.allLabels[index].string = finalValue.toFixed(2);
         this.allProgress[index] = finalValue;
     }
 
+    ApplyChanges() {
+        for (let i = 0; i < this.allKeys.length; i++) {
+            switch (i) {
+                case BarType.STRIKER_DENSITY:
+                    this.mBoardManager.striker.mPhysicsComponent.density = this.allProgress[i];
+                    break;
+                case BarType.STRIKER_FRICTION:
+                    this.mBoardManager.striker.mPhysicsComponent.friction = this.allProgress[i];
+                    break;
+                case BarType.STRIKER_BOUNCE:
+                    this.mBoardManager.striker.mPhysicsComponent.restitution = this.allProgress[i];
+                    break;
+                case BarType.PAWN_DENSITY:
+                    this.dummyPawn.getComponent(cc.PhysicsCircleCollider).density = this.allProgress[i];
+                    break;
+                case BarType.PAWN_FRICTION:
+                    this.dummyPawn.getComponent(cc.PhysicsCircleCollider).friction = this.allProgress[i];
+                    break;
+                case BarType.PAWN_BOUNCE:
+                    this.dummyPawn.getComponent(cc.PhysicsCircleCollider).restitution = this.allProgress[i];
+                    break;
+            }
+        }
+    }
+
     OnSaveBtnClick() {
         //console.log("save button clicked");
         this.SaveDataAll();
+        this.ApplyChanges();
         this.devUIPanel.active = false;
     }
 
     OnCloseBtnClick() {
         //console.log("close button click");
         this.devUIPanel.active = false;
+    }
+
+    OnResetBtnClick() {
+        this.mBoardManager.InitializeCarromBoard();
+        this.mBoardManager.HandleNextTurn("");
     }
 
     ShowPanel() {

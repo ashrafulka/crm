@@ -10,7 +10,10 @@
   "appKey": "",
   "appSecret": "",
   "encryptJs": true,
-  "excludeScenes": [],
+  "excludeScenes": [
+    "34e9f669-17e1-4385-9c8a-356a396f00bc",
+    "f5af117c-8615-47d2-984d-8e4b17167994"
+  ],
   "fb-instant-games": {},
   "includeAnySDK": false,
   "includeSDKBox": false,
@@ -34,7 +37,7 @@
     "orientation": "portrait",
     "zip": false
   },
-  "startScene": "f5af117c-8615-47d2-984d-8e4b17167994",
+  "startScene": "f26bb0ac-8c9e-4252-81df-f96d13aec33f",
   "title": "Carrom",
   "webOrientation": "portrait",
   "wechatgame": {

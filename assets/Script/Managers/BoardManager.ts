@@ -79,6 +79,12 @@ export default class BoardManager extends cc.Component {
     }
 
     InitializeCarromBoard() {
+        if (this.mAllPawnPool.length > 0) {
+            for (let index = 0; index < this.mAllPawnPool.length; index++) {
+                this.mAllPawnPool[index].node.destroy();
+            }
+        }
+
         this.mAllPawnPool.length = 0;
         let pawnNode = cc.instantiate(this.pawnPrefab);
         let r = pawnNode.getComponent(cc.CircleCollider).radius;
@@ -254,8 +260,6 @@ export default class BoardManager extends cc.Component {
                     winnerIndex = i;
                 }
             }
-
-            console.log("WINNER :  " + this.mPlayerPool[winnerIndex].GetName());
             return;
         }
 
