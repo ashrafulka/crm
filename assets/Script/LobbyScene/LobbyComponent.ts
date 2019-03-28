@@ -1,5 +1,5 @@
 import PersistentNodeComponent from "../LoadingScene/PersistentNodeComponent";
-import { Constants, GameScenes, AllGameModes } from "../LoadingScene/Constants";
+import { Constants, GameScenes, AllGameModes, ConnectionStrings } from "../LoadingScene/Constants";
 import Helper from "../Helpers/Helper";
 import { Logger } from "../LoadingScene/Logger";
 import { PlayerModel } from "../LoadingScene/PlayerModel";
@@ -34,13 +34,39 @@ export default class LobbyComponent extends cc.Component {
         console.log("current entry point data : ", currentEntryPointData);
         if (currentEntryPointData != null && currentEntryPointData.room_id && currentEntryPointData.room_id != "") {
             //CHECK TIMER, date
-            this.mLogger.Log("Context id found:::" + currentEntryPointData.context_id);
-            let gm = new GameModel();
-            gm.SetGameMode(AllGameModes.FRIEND_1v1);
-            gm.SetRoomID(currentEntryPointData.room_id);
-            gm.SetInitiator(currentEntryPointData.sender_id, currentEntryPointData.sender_name);
-            this.mPersistentNode.SetCurrentGameModel(gm);
-            cc.director.loadScene(GameScenes.GAME);
+            const createdDate = new Date(currentEntryPointData.date);
+            const diffInSec = (Date.now() - createdDate.getTime()) / 1000;
+
+            if (diffInSec < Constants.MAX_TIME_WAIT_IN_SEC) {
+                this.mLogger.Log("Context id found:::" + currentEntryPointData.context_id);
+                let gm = new GameModel();
+                gm.SetGameMode(AllGameModes.FRIEND_1v1);
+                gm.SetRoomID(currentEntryPointData.room_id);
+                gm.SetInitiator(currentEntryPointData.sender_id, currentEntryPointData.sender_name);
+                this.mPersistentNode.SetCurrentGameModel(gm);
+                cc.director.loadScene(GameScenes.GAME);
+            } else {
+                //make sure user not selected an old context to play new match
+                let self = this;
+                const conn = this.mPersistentNode.GetServerConnection();
+                const data = JSON.stringify({
+                    room_to_check: currentEntryPointData.room_id
+                });
+
+                conn.sendPostRequest(ConnectionStrings.ROOM_TIME_CHECK, data, function (msg: string) {
+                    let msgDecode = JSON.parse(msg);
+                    if (msgDecode.success && msgDecode.success == true) {
+                        self.mLogger.Log("Context id found:::" + currentEntryPointData.context_id);
+                        let gm = new GameModel();
+                        gm.SetGameMode(AllGameModes.FRIEND_1v1);
+                        gm.SetRoomID(currentEntryPointData.room_id);
+                        gm.SetInitiator(currentEntryPointData.sender_id, currentEntryPointData.sender_name);
+                        self.mPersistentNode.SetCurrentGameModel(gm);
+                        cc.director.loadScene(GameScenes.GAME);
+                    }
+                });
+                //console.error(":::CONTEXT TIME MAXED OUT:::");
+            }
         } else {
             this.InitButtons();
         }

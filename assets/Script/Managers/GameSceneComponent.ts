@@ -50,21 +50,7 @@ export default class GameSceneComponent extends cc.Component {
         this.devToolBtn.clickEvents.push(Helper.getEventHandler(this.node, "GameSceneComponent", "OnDevToolBtnClick"));
 
         if (this.mIsDebugMode) {
-
-            this.mBoardManager.mIsMyShot = false;
-            this.mBoardManager.mPlayerPool.push(new Player("id0", "p0")); // room master
-            this.mBoardManager.mPlayerPool.push(new Player("id1", "p1")); // 2nd player
-            this.mBoardManager.UpdateScore({
-                p1_score: 0,
-                p2_score: 0
-            });
-
-            this.mBoardManager.Initialize1v1Players(0, 0);
-            this.mBoardManager.InitializeCarromBoard();
-
-            this.mBoardManager.ApplyTurn();
-            this.mBoardManager.mPlayerPool[this.mBoardManager.mCurrentTurnIndex].SetType(PawnType.WHITE);
-            this.mBoardManager.mPlayerPool[(this.mBoardManager.mCurrentTurnIndex + 1) % this.mBoardManager.mPlayerPool.length].SetType(PawnType.BLACK);
+            this.OnDebugModeRun();
             return;
         }
 
@@ -105,8 +91,24 @@ export default class GameSceneComponent extends cc.Component {
                     self.mPersistentNode.node.on(GameEvents.ROOM_JOIN_SUCCESS, self.OnRoomCreationSuccess, self);
                 } else { //1st player
                     self.mLogger.Log("CREATING ROOM REQUEST");
-                    socketConn.sendCreateRoomRequest(self.mPersistentNode.GetPlayerModel().getID(), self.mPersistentNode.GetCurrentGameModel().GetRoomID());
-                    self.mPersistentNode.node.on(GameEvents.ROOM_CREATION_SUCCESS, self.OnRoomCreationSuccess, self);
+                    self.mPersistentNode.GetServerConnection().sendPostRequest(
+                        ConnectionStrings.ROOM_SAVE,
+                        JSON.stringify({
+                            room_id: self.mPersistentNode.GetCurrentGameModel().GetRoomID()
+                        }),
+                        function (msg: string) {
+                            let jsonDecode = JSON.parse(msg);
+                            if (jsonDecode.success && jsonDecode.success == true) {
+                                socketConn.sendCreateRoomRequest(self.mPersistentNode.GetPlayerModel().getID(), self.mPersistentNode.GetCurrentGameModel().GetRoomID());
+                                self.mPersistentNode.node.on(GameEvents.ROOM_CREATION_SUCCESS, self.OnRoomCreationSuccess, self);
+                            } else {
+                                self.OnServerErr("Sorry, Server isn't responding, Try again later.");
+                            }
+                        },
+                        function (err) {
+                            console.log("SERVER ERR ERROR::: ", err);
+                            self.OnServerErr(err);
+                        });
                 }
                 self.mPersistentNode.node.on(GameEvents.START_GAME, self.OnGameStartCall, self);
                 self.mPersistentNode.node.on(GameEvents.SERVER_ERR, self.OnServerErr, self);
@@ -121,7 +123,7 @@ export default class GameSceneComponent extends cc.Component {
         if (gs == States.WAITING_FOR_FRIEND_TO_CONNECT) {
             let self = this;
             this.waitingPanelNode.active = true;
-            this.waitingPanelNode.getComponent(WaitingPanelComponent).initialize(60, function () {
+            this.waitingPanelNode.getComponent(WaitingPanelComponent).initialize(Constants.MAX_TIME_WAIT_IN_SEC, function () {
                 self.waitingPanelNode.active = false;
                 self.failedToConnectNode.active = true;
                 console.log("end all ws connections, show failed message, go to lobby scene on button press");
@@ -137,6 +139,25 @@ export default class GameSceneComponent extends cc.Component {
         this.mPersistentNode.node.off(GameEvents.ROOM_CREATION_SUCCESS, this.OnRoomCreationSuccess, this);
     }
 
+    OnDebugModeRun() {
+        console.log("RUNNING DEBUG MODE:::");
+        this.mBoardManager.mIsMyShot = true;
+        this.mBoardManager.mPlayerPool.push(new Player("id0", "p0")); // room master
+        this.mBoardManager.mPlayerPool.push(new Player("id1", "p1")); // 2nd player
+        this.mBoardManager.UpdateScore({
+            p1_score: 0,
+            p2_score: 0
+        });
+
+        this.mBoardManager.Initialize1v1Players(0, 0);
+        this.mBoardManager.InitializeCarromBoard();
+
+        this.mBoardManager.ApplyTurn();
+        this.mBoardManager.mPlayerPool[this.mBoardManager.mCurrentTurnIndex].SetType(PawnType.WHITE);
+        this.mBoardManager.mPlayerPool[(this.mBoardManager.mCurrentTurnIndex + 1) % this.mBoardManager.mPlayerPool.length].SetType(PawnType.BLACK);
+
+    }
+
     OnGameStartCall(body: any) {
         this.waitingPanelNode.active = false;
         this.failedToConnectNode.active = false;
@@ -150,8 +171,8 @@ export default class GameSceneComponent extends cc.Component {
         });
 
         if (body.unlock_id == this.mPersistentNode.GetPlayerModel().getID()) {
-            this.mBoardManager.Initialize1v1Players(0, 0);//unlock striker for this player, initiate as main player
             this.mBoardManager.mIsMyShot = true;
+            this.mBoardManager.Initialize1v1Players(0, 0);//unlock striker for this player, initiate as main player
         } else {
             this.mBoardManager.mIsMyShot = false;
             this.mBoardManager.Initialize1v1Players(1, 0);

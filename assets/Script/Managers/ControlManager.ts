@@ -72,29 +72,18 @@ export default class ControlManager extends cc.Component {
 
     OnNextTurnBtnClick() {
         if (this.mBoardManager.mIsDebugMode) {
-            this.mBoardManager.HandleNextTurn("");
+            this.mBoardManager.ApplyNextTurn("");
             return;
         }
 
         let chosenId = "";
         if (this.mBoardManager.mIsValidPotPending) {
             chosenId = this.mPersistentNode.GetPlayerModel().getID();
-            this.mPersistentNode.GetSocketConnection().sendNextTurnUpdate(chosenId);
         } else { //toggle player update
-            if (this.mPersistentNode.GetPlayerModel().getID() == this.mBoardManager.mPlayerPool[0].GetID()) {
-                chosenId = this.mBoardManager.mPlayerPool[1].GetID();
-            } else if (this.mPersistentNode.GetPlayerModel().getID() == this.mBoardManager.mPlayerPool[1].GetID()) {
-                chosenId = this.mBoardManager.mPlayerPool[0].GetID();
-            }
-
-            if (chosenId == "") {
-                this.mLogger.LogError("chosen id not recognized");
-                return;
-            }
-            this.mPersistentNode.GetSocketConnection().sendNextTurnUpdate(chosenId);
+            chosenId = this.mBoardManager.GetOpponentId();
         }
-
-        this.mBoardManager.HandleNextTurn(chosenId);
+        this.mPersistentNode.GetSocketConnection().sendNextTurnUpdate(chosenId);
+        this.mBoardManager.ApplyNextTurn(chosenId);
     }//onnextturnbtnclick
 
     OnStrickerTouchStart(event: cc.Event.EventTouch) {

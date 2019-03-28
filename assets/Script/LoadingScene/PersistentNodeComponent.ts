@@ -31,6 +31,10 @@ export default class PersistentNodeComponent extends cc.Component {
         this.connection = con;
     }
 
+    GetServerConnection(): Connection {
+        return this.connection;
+    }
+
     SaveSocketConnection(con: SocketConnection) {
         this.mSocketConnection = con;
     }

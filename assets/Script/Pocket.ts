@@ -21,10 +21,10 @@ export default class Pocket extends cc.Component {
             rigidbody.active = false;
             circleCollider.enabled = false;
 
-            let moveTo = cc.moveTo(0.5, pawnNode.parent.convertToNodeSpaceAR(this.node.parent.convertToWorldSpaceAR(this.node.position)));
-            let fadeTo = cc.fadeOut(0.3);
+            let moveTo = cc.moveTo(0.2, pawnNode.parent.convertToNodeSpaceAR(this.node.parent.convertToWorldSpaceAR(this.node.position)));
+            let fadeTo = cc.fadeOut(0.2);
             pawnNode.runAction(cc.sequence(moveTo, fadeTo));
-            pawn.DeactiveAfter(0.8);
+            pawn.DeactiveAfter(0.5);
 
             this.mBoardManager.RegisterPot(pawn);
 

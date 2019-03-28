@@ -11,9 +11,6 @@ const { ccclass, property } = cc._decorator;
 export default class BoardManager extends cc.Component {
 
     @property(cc.Node)
-    boardBody: cc.Node = null;
-
-    @property(cc.Node)
     pawnHolder: cc.Node = null;
 
     @property(cc.Node)
@@ -50,18 +47,19 @@ export default class BoardManager extends cc.Component {
     myID: string = "";
     mIsDebugMode: boolean = false;
     mIsMyShot: boolean = true;
+    mStartTracking: boolean = false;
 
     onLoad() {
         this.mStrikerDistanceFromMid = Math.abs(this.striker.strikerNode.getPosition().y);
 
         let pNode = cc.find(Constants.PERSISTENT_NODE_NAME);
-
         if (pNode) {
             this.mIsDebugMode = false;
             this.mPersistentNode = pNode.getComponent(PersistentNodeComponent);
             this.mPersistentNode.node.on(GameEvents.TAKE_SHOT, this.PropagateStrikerShot, this);
-            this.mPersistentNode.node.on(GameEvents.UPDATE_TURN, this.HandleNextTurn, this);
+            this.mPersistentNode.node.on(GameEvents.UPDATE_TURN, this.ApplyNextTurn, this);
             this.mPersistentNode.node.on(GameEvents.UPDATE_SCORE, this.UpdateScore, this);
+            this.mPersistentNode.node.on(GameEvents.SYNC_PAWNS, this.SyncPawns, this);
 
             this.myID = this.mPersistentNode.GetPlayerModel().getID();
         } else {
@@ -88,7 +86,7 @@ export default class BoardManager extends cc.Component {
         }
 
         if (this.mIsMyShot == false) { //rotate pawnholder 120 degree
-            this.pawnHolder.rotation = 150;
+            this.pawnHolder.angle = 210;
         }
 
         this.mAllPawnPool.length = 0;
@@ -103,11 +101,19 @@ export default class BoardManager extends cc.Component {
         startPos.x = -d; // first pawn
         startPos.y = d * 2 - (deltaY * 2);
 
-        let currentHighestCol = 3;
+        //Real values
+        // let currentHighestCol = 3;
+        // let currentHighestRow = 3;
+
+        //Testing  values
+        let currentHighestCol = 2;
+        let currentHighestRow = 2;
+
         let currentType = 1;
         let toggleThreshold = 0;
         let idCounter = -1;
-        for (let row = 0; row < 3; row++) {
+
+        for (let row = 0; row < currentHighestRow; row++) {
             for (let col = 0; col < currentHighestCol; col++) {
                 idCounter++;
                 if (row + col > 0) { //skipping first pawn, its already created
@@ -147,9 +153,10 @@ export default class BoardManager extends cc.Component {
     onDestroy() {
         if (this.mIsDebugMode) return;
 
-        this.mPersistentNode.node.off(GameEvents.TAKE_SHOT, this.PropagateStrikerShot, self);
-        this.mPersistentNode.node.off(GameEvents.UPDATE_TURN, this.HandleNextTurn, this);
+        this.mPersistentNode.node.off(GameEvents.TAKE_SHOT, this.PropagateStrikerShot, this);
+        this.mPersistentNode.node.off(GameEvents.UPDATE_TURN, this.ApplyNextTurn, this);
         this.mPersistentNode.node.off(GameEvents.UPDATE_SCORE, this.UpdateScore, this);
+        this.mPersistentNode.node.off(GameEvents.SYNC_PAWNS, this.SyncPawns, this);
     }
 
     IsStrikerMoving() {
@@ -172,33 +179,42 @@ export default class BoardManager extends cc.Component {
         this.mPlayerPool[(this.mCurrentTurnIndex + 1) % this.mPlayerPool.length].SetType(PawnType.BLACK);
     }
 
-    HandleNextTurn(next_turn_id: string) {
+    ApplyNextTurn(next_turn_id: string) {
         if (this.mIsGameOver) {
             return;
         }
 
         if (this.mIsDebugMode) {
-            console.warn("DEBUG MODE ON");
+            this.mIsMyShot = true;
             if (this.mIsValidPotPending == false) {
                 this.mCurrentTurnIndex = ((this.mCurrentTurnIndex + 1) % this.mPlayerPool.length);
             }
-            this.mIsMyShot = true;
         } else {
             if (this.myID == this.mPlayerPool[0].GetID()) {
                 this.mCurrentTurnIndex = (next_turn_id == this.myID) ? 0 : 1;
             } else if (this.myID == this.mPlayerPool[1].GetID()) {
                 this.mCurrentTurnIndex = next_turn_id == this.myID ? 1 : 0;
             }
+            this.mIsMyShot = (next_turn_id == this.myID); //take off control from player
+
+            if (this.mIsMyShot) {
+                this.ReactivateAllBody();
+            } else {
+                this.DeactivateAllBody();
+            }
         }
-        this.mIsMyShot = (next_turn_id == this.myID); //take off control from player
-        console.log("is my shot::::: ", this.mIsMyShot);
+
         this.striker.ResetStriker();
         this.ApplyTurn();
     }
 
     OnStrikerHit(forceVec: cc.Vec2, magnitude: number) {
+        this.mStartTracking = this.mIsMyShot;
+
         this.mIsValidPotPending = false; // release
         this.mIsMyShot = false;
+        // this.mStartTracking = true;
+        console.log("on striker hit ::: mySHOt::" + this.mIsMyShot + ", istrakcing::" + this.mStartTracking);
 
         if (this.mIsDebugMode == false) {
             this.mPersistentNode.GetSocketConnection().sendNewShotRequest(forceVec, magnitude);
@@ -206,10 +222,9 @@ export default class BoardManager extends cc.Component {
     }
 
     PropagateStrikerShot(body: any) {
-        console.log("comparing :::: ", body.player_id, this.mPersistentNode.GetPlayerModel().getID());
-        if (body.player_id !== this.mPersistentNode.GetPlayerModel().getID()) {
+        if (body.player_id !== this.myID) {
             console.log("PROPAGATING FOR ::: " + this.mPersistentNode.GetPlayerModel().getName());
-            this.striker.ApplyForce(new cc.Vec2(body.force_x, body.force_y), body.mag);
+            //this.striker.ApplyForce(new cc.Vec2(body.force_x, body.force_y), body.mag);
         }
     }
 
@@ -222,7 +237,7 @@ export default class BoardManager extends cc.Component {
 
     ApplyTurn() {
         //update striker pos
-        console.log("applying turn, ", this.mCurrentTurnIndex);
+        //console.log("applying turn, ", this.mCurrentTurnIndex);
         this.UpdateStrikerPos();
     }
 
@@ -237,12 +252,12 @@ export default class BoardManager extends cc.Component {
         //     return;
         // }
 
-
         this.striker.node.active = true;
         if (this.mIsMyShot) {
             this.striker.strikerNode.setPosition(0, -this.mStrikerDistanceFromMid);
         } else {
-            this.striker.strikerNode.setPosition(0, this.mStrikerDistanceFromMid);
+            //this.striker.strikerNode.setPosition(0, this.mStrikerDistanceFromMid);
+            this.striker.node.active = false;
         }
     }
 
@@ -306,10 +321,10 @@ export default class BoardManager extends cc.Component {
     private AddToPawnPool(pawn: cc.Node, id: number) {
         let pawnComp = pawn.getComponent(PawnComponent);
         this.mAllPawnPool.push(pawnComp);
+        pawnComp.RegisterBoardManager(this);
         pawnComp.SetId(id);
         pawn.setParent(this.pawnHolder);
     }
-
     private ConvertPawnTo(pn: cc.Node, pt: number) {
         let pawn = pn.getComponent(PawnComponent);
         switch (pt) {
@@ -326,10 +341,6 @@ export default class BoardManager extends cc.Component {
     }
 
     RegisterPot(pawn: PawnComponent) {
-        if (pawn.GetId() < 0) {
-            return;
-        }
-
         let scoreToAdd = 1;
         switch (pawn.GetPawnType()) {
             case PawnType.RED:
@@ -355,15 +366,138 @@ export default class BoardManager extends cc.Component {
                 this.mPlayerPool[1].GetScore(),
                 this.mPlayerPool[1].GetID()
             );
+
+            this.SendPawnInfo(1);
         }
 
         this.UpdateScoreUI();
 
         console.log("white left " + (this.MAX_PAWN_PER_TYPE_COUNT - this.mWhitePotCount));
         console.log("black left " + (this.MAX_PAWN_PER_TYPE_COUNT - this.mBlackPotCount));
+
         if (this.mWhitePotCount >= this.MAX_PAWN_PER_TYPE_COUNT || this.mBlackPotCount >= this.MAX_PAWN_PER_TYPE_COUNT) {
             //process game over for white player
             this.ProcessGameOver();
         }
     }//registerPot
+
+    GetOpponentId(): string {
+        if (this.mPlayerPool[0].GetID() == this.mPersistentNode.GetPlayerModel().getID()) {
+            return this.mPlayerPool[1].GetID();
+        } else if (this.mPlayerPool[1].GetID() == this.mPersistentNode.GetPlayerModel().getID()) {
+            return this.mPlayerPool[0].GetID();
+        }
+    }
+
+    GetAllSpeed(): number {
+        let speed = 0;
+        for (let index = 0; index < this.mAllPawnPool.length; index++) {
+            speed += this.mAllPawnPool[index].mRigidBody.linearVelocity.magSqr();
+        }
+
+        speed += this.striker.mStrikerRigidBody.linearVelocity.magSqr();
+        return speed;
+    }
+
+    SendPawnInfo(lastUpdate: number) {
+        //TODO just send the necessary pawns
+        let infoJSON: any = {};
+        infoJSON.all_pawns = [];
+
+        for (let index = 0; index < this.mAllPawnPool.length; index++) {
+            const element = this.mAllPawnPool[index];
+            let isPot = element.mIsPotted ? 1 : 0;
+
+            infoJSON.all_pawns.push({
+                index_num: index,
+                position_x: element.node.position.x,
+                position_y: element.node.position.y,
+                is_potted: isPot
+            });
+        }
+        infoJSON.shooter_id = this.myID;
+        infoJSON.last_update = lastUpdate;
+        this.mPersistentNode.GetSocketConnection().sendPawnInfo(infoJSON);
+    }
+
+    SyncPawns(body: any) {
+        //console.log("synching :: ", body.shooter_id, this.myID);
+        let lastUpdate = body.last_update == 0 ? false : true;
+
+        if (body.all_pawns && body.shooter_id != this.myID) {
+            //console.log("total pawns:: ", body.all_pawns.length);
+            for (let index = 0; index < body.all_pawns.length; index++) {
+                let inNum = body.all_pawns[index].index_num;
+                let x = body.all_pawns[index].position_x;
+                let y = body.all_pawns[index].position_y;
+                let isPot = body.all_pawns[index].is_potted;
+
+                if (isPot == 0) { //active
+                    //console.log("moving to position::: ", lastUpdate);
+                    this.mAllPawnPool[inNum].node.active = true;
+                    if (lastUpdate == false) {
+                        var action = cc.moveTo(0.1, x, y);
+                        this.mAllPawnPool[inNum].node.runAction(action);
+
+                    } else {
+                        this.mAllPawnPool[inNum].node.setPosition(x, y);
+                    }
+                } else {
+                    this.mAllPawnPool[inNum].mIsPotted = true;
+                    this.mAllPawnPool[inNum].node.active = false;
+                }
+            }
+        }
+    }
+
+    DeactivateAllBody() {
+        for (let index = 0; index < this.mAllPawnPool.length; index++) {
+            const element = this.mAllPawnPool[index];
+            element.DeactivateRigidbody();
+        }
+    }
+
+    ReactivateAllBody() {
+        for (let index = 0; index < this.mAllPawnPool.length; index++) {
+            const element = this.mAllPawnPool[index];
+            if (element.mIsPotted == false) {
+                element.ActivateRigidbody();
+            }
+        }
+    }
+
+    TakeNextTurn() {
+        let chosenID = this.mIsValidPotPending ? this.myID : this.GetOpponentId();
+        this.ApplyNextTurn(chosenID);
+        this.mPersistentNode.GetSocketConnection().sendNextTurnUpdate(chosenID);
+    }
+
+    frameStep: number = 0;
+    totalSec: number = 0;
+
+    update(dt) {
+        if (this.mIsDebugMode) {
+            //this.frameStep += dt;
+            //console.log(this.frameStep, dt);
+            return;
+        }
+
+        if (this.mStartTracking) {
+            this.frameStep += dt;
+            this.totalSec += dt;
+
+            if (this.frameStep > 0.05) {
+                this.frameStep = 0;
+                this.SendPawnInfo(0);
+
+                if (this.GetAllSpeed() <= 2 || this.totalSec >= 7) { //TODO,neglagible speed or threshold
+                    console.error("SENDING FINAL INFO");
+                    this.SendPawnInfo(1);
+                    this.totalSec = 0;
+                    this.mStartTracking = false;
+                    this.TakeNextTurn();
+                }
+            }
+        }
+    }
 }

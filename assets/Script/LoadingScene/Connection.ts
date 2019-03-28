@@ -143,6 +143,11 @@ export class SocketConnection {
             self.mPersistentNode.node.emit(GameEvents.UPDATE_SCORE, data.body);
         });
 
+        socket.on(GameEvents.SYNC_PAWNS, function (data) {
+            //self.mLogger.Log("sycing pawns::: ", data);
+            self.mPersistentNode.node.emit(GameEvents.SYNC_PAWNS, data.body);
+        });
+
         this.mySocket = socket;
         this.mPersistentNode.SaveSocketConnection(this.mySocket);
     }
@@ -217,6 +222,18 @@ export class SocketConnection {
             p1_score: p1ScoreUpdate,
             p2_score: p2ScoreUpdate
         });
+    }
+
+    sendPawnInfo(pawninfo: any) {
+        if (!this.mySocket) {
+            this.mLogger.LogError("web socket isnt added, failed request : sendNextTurnUpdate");
+            return;
+        }
+
+        let finalJSON = pawninfo;
+        finalJSON.request_type = RequestTypes.SYNC_PAWN_INFO;
+        finalJSON.room_id = this.mPersistentNode.GetCurrentGameModel().GetRoomID();
+        this.mySocket.emit(RequestTypes.SYNC_PAWN_INFO, finalJSON);
     }
 
 }
