@@ -57,13 +57,7 @@ export default class ControlManager extends cc.Component {
         this.striker.strikerNode.on(cc.Node.EventType.TOUCH_MOVE, this.OnStrickerDrag.bind(this));
         this.striker.strikerNode.on(cc.Node.EventType.TOUCH_END, this.OnStrikerDragEnd.bind(this));
         this.striker.strikerNode.on(cc.Node.EventType.TOUCH_CANCEL, this.OnStrikerDragEnd.bind(this));
-
-        this.striker.node.active = false;
     }//onLoad
-
-    unlockStriker() {
-        this.striker.node.active = true;
-    }
 
     start() {
         this.mBoardManager = this.getComponent(BoardManager);
@@ -72,7 +66,7 @@ export default class ControlManager extends cc.Component {
 
     OnNextTurnBtnClick() {
         if (this.mBoardManager.mIsDebugMode) {
-            this.mBoardManager.ApplyNextTurn("");
+            this.mBoardManager.OnNextTurnCallback("");
             return;
         }
 
@@ -83,10 +77,19 @@ export default class ControlManager extends cc.Component {
             chosenId = this.mBoardManager.GetOpponentId();
         }
         this.mPersistentNode.GetSocketConnection().sendNextTurnUpdate(chosenId);
-        this.mBoardManager.ApplyNextTurn(chosenId);
+        this.mBoardManager.OnNextTurnCallback(chosenId);
     }//onnextturnbtnclick
 
     OnStrickerTouchStart(event: cc.Event.EventTouch) {
+        if (this.mBoardManager.mIsMyShot == false) {
+            return;
+        }
+
+        if (this.mBoardManager.IsStrikerPosValid() == false) {
+            console.log("striker position not valid");
+            return;
+        }
+
         this.mStrikerStartPos = event.getTouches()[0].getLocation();
         this.mStrikerCenter = this.striker.strikerNode.parent.convertToWorldSpaceAR(this.striker.strikerNode.getPosition());
         this.controlSlider.enabled = false;
@@ -94,6 +97,10 @@ export default class ControlManager extends cc.Component {
 
     OnStrickerDrag(event: cc.Event.EventTouch) {
         if (this.mBoardManager.mIsMyShot == false) {
+            return;
+        }
+
+        if (this.mBoardManager.IsStrikerPosValid() == false) {
             return;
         }
 
@@ -136,6 +143,7 @@ export default class ControlManager extends cc.Component {
 
     OnSlide() {
         this.striker.OnSlide(this.controlSlider.progress);
+        this.mBoardManager.IsStrikerPosValid();
     }
 
     onDestroy() {

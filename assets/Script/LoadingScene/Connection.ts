@@ -148,6 +148,16 @@ export class SocketConnection {
             self.mPersistentNode.node.emit(GameEvents.SYNC_PAWNS, data.body);
         });
 
+        socket.on(GameEvents.GAME_OVER, function (data) {
+            self.mLogger.Log("GAME OVER::: ", data);
+            self.mPersistentNode.node.emit(GameEvents.GAME_OVER, data.body);
+        });
+
+        socket.on(GameEvents.GE_RED_POT_COVER, function (data) {
+            self.mLogger.Log("::RED POT RECEIVED::");
+            self.mPersistentNode.node.emit(GameEvents.GE_RED_POT_COVER, data.body);
+        });
+
         this.mySocket = socket;
         this.mPersistentNode.SaveSocketConnection(this.mySocket);
     }
@@ -199,7 +209,7 @@ export class SocketConnection {
             return;
         }
 
-        console.log("requesting next turn");
+        //console.log("requesting next turn");
         this.mySocket.emit(RequestTypes.REQUEST_TURN, {
             request_type: RequestTypes.REQUEST_TURN,
             room_id: this.mPersistentNode.GetCurrentGameModel().GetRoomID(),
@@ -234,6 +244,32 @@ export class SocketConnection {
         finalJSON.request_type = RequestTypes.SYNC_PAWN_INFO;
         finalJSON.room_id = this.mPersistentNode.GetCurrentGameModel().GetRoomID();
         this.mySocket.emit(RequestTypes.SYNC_PAWN_INFO, finalJSON);
+    }
+
+    sendGameOverReq(data: any) {
+        if (!this.mySocket) {
+            this.mLogger.LogError("web socket isnt added, failed request : sendNextTurnUpdate");
+            return;
+        }
+
+        let finalJSON = data;
+        finalJSON.request_type = RequestTypes.REQ_GAME_OVER;
+        finalJSON.room_id = this.mPersistentNode.GetCurrentGameModel().GetRoomID();
+
+        this.mySocket.emit(RequestTypes.REQ_GAME_OVER, finalJSON);
+    }
+
+
+    sendRedPotCoverReq(data: any) {
+        if (!this.mySocket) {
+            this.mLogger.LogError("web socket isnt added, failed request : sendNextTurnUpdate");
+            return;
+        }
+
+        let finalJSON = data;
+        finalJSON.request_type = RequestTypes.REQ_RED_COVER;
+        finalJSON.room_id = this.mPersistentNode.GetCurrentGameModel().GetRoomID();
+        this.mySocket.emit(RequestTypes.REQ_RED_COVER, finalJSON);
     }
 
 }

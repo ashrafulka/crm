@@ -59,8 +59,8 @@
     },
     "_position": {
       "__type__": "cc.Vec3",
-      "x": -207,
-      "y": -12,
+      "x": -138,
+      "y": -101,
       "z": 0
     },
     "_scale": {
@@ -123,13 +123,13 @@
     "_enabled": true,
     "pawnType": 0,
     "redSpriteFrame": {
-      "__uuid__": "592f07a5-8b53-4c86-97a2-0184b3533d58"
+      "__uuid__": "b8c674be-e509-4a53-8303-11472e0bc2f6"
     },
     "blackSpriteFrame": {
       "__uuid__": "8d8515b3-fc68-4e69-b714-a179a42aebe0"
     },
     "whiteSpriteFrame": {
-      "__uuid__": "b8c674be-e509-4a53-8303-11472e0bc2f6"
+      "__uuid__": "592f07a5-8b53-4c86-97a2-0184b3533d58"
     },
     "mXPotCheckDistance": 60,
     "mYPotCheckDistance": 220,
@@ -143,7 +143,7 @@
     "node": {
       "__id__": 1
     },
-    "_enabled": true,
+    "_enabled": false,
     "tag": 0,
     "_offset": {
       "__type__": "cc.Vec2",
@@ -186,10 +186,10 @@
     },
     "_enabled": true,
     "tag": 0,
-    "_density": 5,
+    "_density": 3,
     "_sensor": false,
-    "_friction": 0.3,
-    "_restitution": 0.5,
+    "_friction": 0.6,
+    "_restitution": 0.7,
     "body": null,
     "_offset": {
       "__type__": "cc.Vec2",

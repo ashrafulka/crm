@@ -1,5 +1,5 @@
 import PersistentNodeComponent from "../LoadingScene/PersistentNodeComponent";
-import { Constants, AllGameModes, GameEvents, ConnectionStrings } from "../LoadingScene/Constants";
+import { Constants, AllGameModes, GameEvents, ConnectionStrings, GameScenes } from "../LoadingScene/Constants";
 import { States } from "../LoadingScene/GameState";
 import WaitingPanelComponent from "../UI/WaitingPanelComponent";
 import { SocketConnection } from "../LoadingScene/Connection";
@@ -135,7 +135,6 @@ export default class GameSceneComponent extends cc.Component {
         this.mLogger.Log("ROOM CREATED SUCCESSFULLY::::::");
         //this.waitingPanelNode.active = false;
         //this.failedToConnectNode.active = false;
-
         this.mPersistentNode.node.off(GameEvents.ROOM_CREATION_SUCCESS, this.OnRoomCreationSuccess, this);
     }
 
@@ -144,12 +143,13 @@ export default class GameSceneComponent extends cc.Component {
         this.mBoardManager.mIsMyShot = true;
         this.mBoardManager.mPlayerPool.push(new Player("id0", "p0")); // room master
         this.mBoardManager.mPlayerPool.push(new Player("id1", "p1")); // 2nd player
-        this.mBoardManager.UpdateScore({
+        this.mBoardManager.InitUI();
+        this.mBoardManager.OnUpdateScoreCallback({
             p1_score: 0,
             p2_score: 0
         });
 
-        this.mBoardManager.Initialize1v1Players(0, 0);
+        this.mBoardManager.Initialize1v1Players(0);
         this.mBoardManager.InitializeCarromBoard();
 
         this.mBoardManager.ApplyTurn();
@@ -165,24 +165,34 @@ export default class GameSceneComponent extends cc.Component {
 
         this.mBoardManager.mPlayerPool.push(new Player(body.p1_id, body.p1_name)); // room master
         this.mBoardManager.mPlayerPool.push(new Player(body.p2_id, body.p2_name)); // 2nd player
-        this.mBoardManager.UpdateScore({
-            p1_score: 0,
-            p2_score: 0
-        });
+
+        //unlock id is random
+        if (body.unlock_id == body.p1_id) { //room master
+            this.mBoardManager.mPlayerPool[0].SetType(PawnType.WHITE);
+            this.mBoardManager.mPlayerPool[1].SetType(PawnType.BLACK);
+        } else if (body.unlock_id == body.p2_id) {
+            this.mBoardManager.mPlayerPool[1].SetType(PawnType.WHITE);
+            this.mBoardManager.mPlayerPool[0].SetType(PawnType.BLACK);
+        }
 
         if (body.unlock_id == this.mPersistentNode.GetPlayerModel().getID()) {
             this.mBoardManager.mIsMyShot = true;
-            this.mBoardManager.Initialize1v1Players(0, 0);//unlock striker for this player, initiate as main player
+            this.mBoardManager.Initialize1v1Players(0);//unlock striker for this player, initiate as main player
         } else {
             this.mBoardManager.mIsMyShot = false;
-            this.mBoardManager.Initialize1v1Players(1, 0);
+            this.mBoardManager.Initialize1v1Players(1);
         }
 
-        this.mBoardManager.InitializeCarromBoard();
+        console.error("CURRENT INDEX:: ", this.mBoardManager.mCurrentTurnIndex);
+        this.mBoardManager.InitializeCarromBoard(); //must be initiated after isMyShot is initialized
+        this.mBoardManager.InitUI();
+        this.mBoardManager.OnUpdateScoreCallback({
+            p1_score: 0,
+            p2_score: 0
+        });
+        //this.mBoardManager.OnNextTurnCallback(body.unlock_id);
+        this.mBoardManager.StartShotTimer();
         this.mBoardManager.ApplyTurn();
-        this.mBoardManager.mPlayerPool[this.mBoardManager.mCurrentTurnIndex].SetType(PawnType.WHITE);
-        this.mBoardManager.mPlayerPool[(this.mBoardManager.mCurrentTurnIndex + 1) % this.mBoardManager.mPlayerPool.length].SetType(PawnType.BLACK);
-
         this.mPersistentNode.node.off(GameEvents.START_GAME, this.OnGameStartCall, this);
     }
 

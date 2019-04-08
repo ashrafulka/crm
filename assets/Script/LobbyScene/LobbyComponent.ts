@@ -47,6 +47,7 @@ export default class LobbyComponent extends cc.Component {
                 cc.director.loadScene(GameScenes.GAME);
             } else {
                 //make sure user not selected an old context to play new match
+                this.mLogger.Log("MAKING SURE PREVIOUS ID NOT SELECTED");
                 let self = this;
                 const conn = this.mPersistentNode.GetServerConnection();
                 const data = JSON.stringify({
@@ -54,6 +55,7 @@ export default class LobbyComponent extends cc.Component {
                 });
 
                 conn.sendPostRequest(ConnectionStrings.ROOM_TIME_CHECK, data, function (msg: string) {
+                    console.log("ROOM TIEM CHECK MSG::: ", msg);
                     let msgDecode = JSON.parse(msg);
                     if (msgDecode.success && msgDecode.success == true) {
                         self.mLogger.Log("Context id found:::" + currentEntryPointData.context_id);

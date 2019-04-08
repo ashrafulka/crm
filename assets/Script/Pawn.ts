@@ -43,13 +43,15 @@ export default class PawnComponent extends cc.Component {
     mMinimumPotDistanceCheck: number = 0;
 
     mId: number = -1;
+    mIndex: number = -1;
     mPotPlayer: Player = null;
     mIsPotted: boolean = false;
     mRigidBody: cc.RigidBody = null;
     mPhysicsCollider: cc.PhysicsCircleCollider = null;
     mBoardManager: BoardManager = null;
-
     mAllPocketPositions: Array<cc.Vec2> = [];
+
+    vanishSchedule = null;
 
     onLoad() {
         this.mRigidBody = this.getComponent(cc.RigidBody);
@@ -64,15 +66,38 @@ export default class PawnComponent extends cc.Component {
         return this.mId;
     }
 
+    SetIndex(index: number): number {
+        return this.mIndex;
+    }
+
+    GetIndex(): number {
+        return this.mIndex;
+    }
+
     GetPotPlayer(): Player {
         return this.mPotPlayer;
     }
 
     SetPotPlayer(player: Player) {
         this.mPotPlayer = player;
+        this.mPotPlayer.AddToScore(this.pawnType == PawnType.RED ? 5 : 1);
         this.mIsPotted = true;
-        this.mRigidBody.linearVelocity = cc.Vec2.ZERO;
-        this.mRigidBody.angularVelocity = 0;
+    }
+
+    FoulRespawn() {
+        if (this.mPotPlayer) {
+            this.mPotPlayer.AddToScore(this.pawnType == PawnType.RED ? -5 : -1);
+        }
+
+        this.mPotPlayer = null;
+        this.mIsPotted = false;
+        if (this.vanishSchedule) {
+            clearInterval(this.vanishSchedule);
+        }
+        this.node.stopAllActions();
+        this.node.setScale(1);
+        this.node.active = true;
+        this.ActivatePhysics();
     }
 
     RegisterBoardManager(bm: BoardManager) {
@@ -85,6 +110,13 @@ export default class PawnComponent extends cc.Component {
             this.mAllPocketPositions.push(new cc.Vec2(ap[index].getPosition().x, ap[index].getPosition().y));
         }
     }
+
+    // onEnable() {
+    //     console.log("ENABLE ID :: ", this.GetId());
+    // }//onenable
+    // onDisable() {
+    //     console.log("DISABLE ID :: ", this.GetId());
+    // }//ondisable
 
     update(dt) {
         if (this.mIsPotted) {
@@ -111,16 +143,13 @@ export default class PawnComponent extends cc.Component {
 
     PotCheck(pocketType: PocketType) {
         let dis = Helper.getDistance(this.node.position, this.mAllPocketPositions[pocketType]);
-        //console.log("dis: ", this.GetId(), dis);
-        //console.log("distance squared :: ", pockPos.sub(this.node.getPosition()));
         if (dis <= this.mMinimumPotDistanceCheck) {
-            this.DeactivateRigidbody();
+            this.DisablePhysics();
             this.mBoardManager.RegisterPot(this);
-            //TODO
-            let moveTo = cc.moveTo(0.1, this.mAllPocketPositions[pocketType]);
-            let fadeTo = cc.fadeOut(0.2);
-            this.node.runAction(cc.sequence(moveTo, fadeTo));
-            this.DeactiveAfter(0.3);
+            let scaleTo = cc.scaleTo(0.1, 0.7, 0.7);
+            //let fadeTo = cc.fadeOut(0.1);
+            this.node.runAction(scaleTo);
+            this.DeactiveAfter(0.2);
         }
     }
 
@@ -142,10 +171,6 @@ export default class PawnComponent extends cc.Component {
         }
     }
 
-    Reset() {
-        this.node.setPosition(cc.Vec2.ZERO);
-    }
-
     Convert(pawnType: PawnType) {
         this.pawnType = pawnType;
         this.init(this.pawnType);
@@ -153,18 +178,21 @@ export default class PawnComponent extends cc.Component {
 
     DeactiveAfter(duration: number) {
         var self = this;
-        this.scheduleOnce(function () {
+        this.vanishSchedule = this.scheduleOnce(function () {
+            console.log("Deactivating id:: ", this.mId);
             self.node.active = false;
         }, duration);
     }
 
-    DeactivateRigidbody() {
+    DisablePhysics() {
+        this.mRigidBody.linearVelocity = cc.Vec2.ZERO;
         this.mPhysicsCollider.enabled = false;
         this.mRigidBody.active = false;
     }
 
-    ActivateRigidbody() {
+    ActivatePhysics() {
         this.mRigidBody.active = true;
         this.mPhysicsCollider.enabled = true;
+        this.mRigidBody.allowSleep = false;
     }
 }

@@ -178,7 +178,7 @@ export default class DevUI extends cc.Component {
 
     OnResetBtnClick() {
         this.mBoardManager.InitializeCarromBoard();
-        this.mBoardManager.ApplyNextTurn("");
+        this.mBoardManager.OnNextTurnCallback("");
     }
 
     ShowPanel() {

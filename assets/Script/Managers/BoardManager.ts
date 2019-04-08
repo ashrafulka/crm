@@ -1,9 +1,12 @@
 import PawnComponent, { PawnType } from "./../Pawn";
-import { Player } from "../Player";
+import { Player, BoardState, FoulTypes } from "../Player";
 import Striker from "../Striker";
 import { Constants, GameType, AllGameModes, GameEvents } from "../LoadingScene/Constants";
 import PersistentNodeComponent from "../LoadingScene/PersistentNodeComponent";
 import { Logger } from "../LoadingScene/Logger";
+import GameUIManager from "../UI/GameUIManager";
+import Helper from "../Helpers/Helper";
+import { GenericPopupBtnType } from "../UI/GenericPopup";
 
 const { ccclass, property } = cc._decorator;
 
@@ -24,6 +27,11 @@ export default class BoardManager extends cc.Component {
 
     @property(cc.Label)
     scoreLabels: Array<cc.Label> = [];
+    @property(cc.Label)
+    typeLabels: Array<cc.Label> = [];
+
+    @property(PawnComponent)
+    dummyPawnComponent: PawnComponent = null;
 
     mAllPawnPool: Array<PawnComponent> = [];
     mPlayerPool: Array<Player> = [];
@@ -35,19 +43,24 @@ export default class BoardManager extends cc.Component {
     mPersonalIndex: number = 0;
     mStrikerDistanceFromMid: number = 0;
     mTotalPawnsCount: number = 0;
-
-    mBlackPotCount: number = 0;
-    mWhitePotCount: number = 0;
-    MAX_PAWN_PER_TYPE_COUNT = 9;
-
     //Flags
     mIsGameOver: boolean = false;
     mIsValidPotPending: boolean = false;
-
-    myID: string = "";
+    mIsRedPotCoverPending: boolean = false;
     mIsDebugMode: boolean = false;
     mIsMyShot: boolean = true;
-    mStartTracking: boolean = false;
+    startPawnTracking: boolean = false;
+
+    myID: string = "";
+    mPawnRadius: number = 0;
+    redPawnIndex: number = -1;
+    mLastShotPointerIndex: number = 0;
+
+    mAllPots: Array<PawnComponent> = [];
+    mUIManager: GameUIManager = null;
+
+    static MAX_PAWN_PER_TYPE_COUNT = 9;
+    static IS_RED_COVERED: boolean = false;
 
     onLoad() {
         this.mStrikerDistanceFromMid = Math.abs(this.striker.strikerNode.getPosition().y);
@@ -56,10 +69,12 @@ export default class BoardManager extends cc.Component {
         if (pNode) {
             this.mIsDebugMode = false;
             this.mPersistentNode = pNode.getComponent(PersistentNodeComponent);
-            this.mPersistentNode.node.on(GameEvents.TAKE_SHOT, this.PropagateStrikerShot, this);
-            this.mPersistentNode.node.on(GameEvents.UPDATE_TURN, this.ApplyNextTurn, this);
-            this.mPersistentNode.node.on(GameEvents.UPDATE_SCORE, this.UpdateScore, this);
-            this.mPersistentNode.node.on(GameEvents.SYNC_PAWNS, this.SyncPawns, this);
+            this.mPersistentNode.node.on(GameEvents.TAKE_SHOT, this.OnTakeShotCallback, this);
+            this.mPersistentNode.node.on(GameEvents.UPDATE_TURN, this.OnNextTurnCallback, this);
+            this.mPersistentNode.node.on(GameEvents.UPDATE_SCORE, this.OnUpdateScoreCallback, this);
+            this.mPersistentNode.node.on(GameEvents.SYNC_PAWNS, this.OnSyncPawnsCallback, this);
+            this.mPersistentNode.node.on(GameEvents.GAME_OVER, this.OnGameOverResponseCallback, this);
+            this.mPersistentNode.node.on(GameEvents.GE_RED_POT_COVER, this.OnRedCoverEvent, this);
 
             this.myID = this.mPersistentNode.GetPlayerModel().getID();
         } else {
@@ -70,12 +85,17 @@ export default class BoardManager extends cc.Component {
     start() {
         this.mAllPawnPool.length = 0; //reset
         this.mLogger = new Logger(this.node.name);
+        this.mUIManager = this.getComponent(GameUIManager);
+    }
 
-        this.striker.node.active = false;
-        //this.InitializePlayers();
-        //this.ApplyTurn();
-        //this.mPlayerPool[this.mCurrentTurnIndex].SetType(PawnType.WHITE);
-        //this.mPlayerPool[(this.mCurrentTurnIndex + 1) % this.mPlayerPool.length].SetType(PawnType.BLACK);
+    InitUI() {
+        this.mUIManager.RegisterBoardManager(this);
+        if (this.myID == this.mPlayerPool[0].GetID()) {
+            this.mUIManager.InitializePlayerNodes(this.mPlayerPool[0], this.mPlayerPool[1]);
+        } else {
+            this.mUIManager.InitializePlayerNodes(this.mPlayerPool[1], this.mPlayerPool[0]);
+        }
+        //console.log("Initializing UI");
     }
 
     InitializeCarromBoard() {
@@ -91,7 +111,8 @@ export default class BoardManager extends cc.Component {
 
         this.mAllPawnPool.length = 0;
         let pawnNode = cc.instantiate(this.pawnPrefab);
-        let r = pawnNode.getComponent(cc.CircleCollider).radius;
+        this.mPawnRadius = pawnNode.getComponent(cc.CircleCollider).radius;
+        let r = this.mPawnRadius;
         let d = r * 2;
 
         //let deltaX = Math.abs(r * 2 - ((r * 2) * Math.cos(45)));
@@ -102,12 +123,12 @@ export default class BoardManager extends cc.Component {
         startPos.y = d * 2 - (deltaY * 2);
 
         //Real values
-        // let currentHighestCol = 3;
-        // let currentHighestRow = 3;
+        let currentHighestCol = 3;
+        let currentHighestRow = 3;
 
         //Testing  values
-        let currentHighestCol = 2;
-        let currentHighestRow = 2;
+        // let currentHighestCol = 2;
+        // let currentHighestRow = 2;
 
         let currentType = 1;
         let toggleThreshold = 0;
@@ -148,38 +169,32 @@ export default class BoardManager extends cc.Component {
                 break;
             }
         }//for
+
+        for (let index = 0; index < this.mAllPawnPool.length; index++) {
+            const element = this.mAllPawnPool[index];
+            if (element.pawnType == PawnType.RED) {
+                this.redPawnIndex = index;
+                break;
+            }
+        }
     }
 
     onDestroy() {
         if (this.mIsDebugMode) return;
 
-        this.mPersistentNode.node.off(GameEvents.TAKE_SHOT, this.PropagateStrikerShot, this);
-        this.mPersistentNode.node.off(GameEvents.UPDATE_TURN, this.ApplyNextTurn, this);
-        this.mPersistentNode.node.off(GameEvents.UPDATE_SCORE, this.UpdateScore, this);
-        this.mPersistentNode.node.off(GameEvents.SYNC_PAWNS, this.SyncPawns, this);
+        this.mPersistentNode.node.off(GameEvents.TAKE_SHOT, this.OnTakeShotCallback, this);
+        this.mPersistentNode.node.off(GameEvents.UPDATE_TURN, this.OnNextTurnCallback, this);
+        this.mPersistentNode.node.off(GameEvents.UPDATE_SCORE, this.OnUpdateScoreCallback, this);
+        this.mPersistentNode.node.off(GameEvents.SYNC_PAWNS, this.OnSyncPawnsCallback, this);
+        this.mPersistentNode.node.off(GameEvents.GAME_OVER, this.OnGameOverResponseCallback, this);
+        this.mPersistentNode.node.off(GameEvents.GE_RED_POT_COVER, this.OnRedCoverEvent, this);
     }
 
-    IsStrikerMoving() {
-        if (!this.striker.mStrikerRigidBody) {
-            console.warn("couldnt find rigid body");
-            return false;
-        }
-
-        if (this.striker.mStrikerRigidBody.linearVelocity == cc.Vec2.ZERO) {
-            return false;
-        }
-
-        return true;
-    }
-
-    Initialize1v1Players(personalIndex: number, currentTurnIndex: number) {
-        this.mPersonalIndex = personalIndex;
+    Initialize1v1Players(currentTurnIndex: number) {
         this.mCurrentTurnIndex = currentTurnIndex;
-        this.mPlayerPool[this.mCurrentTurnIndex].SetType(PawnType.WHITE);
-        this.mPlayerPool[(this.mCurrentTurnIndex + 1) % this.mPlayerPool.length].SetType(PawnType.BLACK);
     }
 
-    ApplyNextTurn(next_turn_id: string) {
+    OnNextTurnCallback(next_turn_id: string) {
         if (this.mIsGameOver) {
             return;
         }
@@ -204,108 +219,258 @@ export default class BoardManager extends cc.Component {
             }
         }
 
+        this.StartShotTimer();
         this.striker.ResetStriker();
         this.ApplyTurn();
     }
 
+    StartShotTimer() {
+        this.mUIManager.InitTimer(this.mIsMyShot ? this.myID : this.GetOpponentId());
+    }
+
+    ShotTimeOutRequest() {
+        console.error("TIMEOUT REQUEST::::");
+        if (this.mIsDebugMode == false) {
+            if (this.mIsMyShot) {
+                this.mUIManager.ShowToast(2, "TIME OUT!");
+                this.mPersistentNode.GetSocketConnection().sendNextTurnUpdate(this.GetOpponentId());
+            } else {
+                this.mPersistentNode.GetSocketConnection().sendNextTurnUpdate(this.myID);
+            }
+        }
+    }
+
     OnStrikerHit(forceVec: cc.Vec2, magnitude: number) {
-        this.mStartTracking = this.mIsMyShot;
+        this.startPawnTracking = this.mIsMyShot;
 
         this.mIsValidPotPending = false; // release
         this.mIsMyShot = false;
-        // this.mStartTracking = true;
-        console.log("on striker hit ::: mySHOt::" + this.mIsMyShot + ", istrakcing::" + this.mStartTracking);
-
+        //console.log("on striker hit ::: mySHOt::" + this.mIsMyShot + ", istrakcing::" + this.mStartTracking);
         if (this.mIsDebugMode == false) {
             this.mPersistentNode.GetSocketConnection().sendNewShotRequest(forceVec, magnitude);
         }
     }
 
-    PropagateStrikerShot(body: any) {
+    OnTakeShotCallback(body: any) {
         if (body.player_id !== this.myID) {
-            console.log("PROPAGATING FOR ::: " + this.mPersistentNode.GetPlayerModel().getName());
+            //console.log("PROPAGATING FOR ::: " + this.mPersistentNode.GetPlayerModel().getName());
             //this.striker.ApplyForce(new cc.Vec2(body.force_x, body.force_y), body.mag);
         }
+
+        this.mUIManager.StopTimer();
     }
 
-    UpdateScore(body: any) {
+    OnUpdateScoreCallback(body: any) {
         this.mPlayerPool[0].SetScore(body.p1_score);
         this.mPlayerPool[1].SetScore(body.p2_score);
 
-        this.UpdateScoreUI();
+        this.mUIManager.UpdateScore();
+        //this.UpdateScoreUI();
     }
 
     ApplyTurn() {
-        //update striker pos
-        //console.log("applying turn, ", this.mCurrentTurnIndex);
+        this.GetClosePawnList();
         this.UpdateStrikerPos();
     }
 
     private UpdateStrikerPos() {
-        // if (this.mCurrentTurnIndex == 0) {
-        //     this.striker.node.active = true;
-        //     this.striker.strikerNode.setPosition(0, this.mStrikerDistanceFromMid);
-        //     return;
-        // } else if (this.mCurrentTurnIndex == 1) {
-        //     this.striker.node.active = true;
-        //     this.striker.strikerNode.setPosition(0, -this.mStrikerDistanceFromMid);
-        //     return;
-        // }
-
         this.striker.node.active = true;
-        if (this.mIsMyShot) {
-            this.striker.strikerNode.setPosition(0, -this.mStrikerDistanceFromMid);
-        } else {
-            //this.striker.strikerNode.setPosition(0, this.mStrikerDistanceFromMid);
-            this.striker.node.active = false;
+
+        const startPosY = this.mIsMyShot ? -this.mStrikerDistanceFromMid : this.mStrikerDistanceFromMid;
+        this.striker.strikerNode.setPosition(0, startPosY);
+
+        let startPosX = this.striker.mPhysicsComponent.radius;
+        let counter = 0;
+        while (!this.IsStrikerPosValid()) { //TODO check both ways
+            counter++;
+            if (counter % 2 == 0) { //check right
+                startPosX = (counter / 2) * this.striker.mPhysicsComponent.radius;
+            } else { //check right
+                startPosX = -((counter + 1) / 2) * this.striker.mPhysicsComponent.radius;
+            }
+            this.striker.strikerNode.setPosition(startPosX, startPosY);
         }
+    }
+
+    closePawnIndexList: Array<number> = [];
+
+    GetClosePawnList() {
+        this.closePawnIndexList.length = 0;
+
+        const startPosY = this.mIsMyShot ? -this.mStrikerDistanceFromMid : this.mStrikerDistanceFromMid;
+        const dangerDistance = this.striker.mPhysicsComponent.radius + this.mAllPawnPool[0].mPhysicsCollider.radius;
+
+        const dangerThresholdMinY = startPosY - dangerDistance;
+        const dangerThresholdMaxY = startPosY + dangerDistance;
+
+        const worldPosMin = this.striker.node.convertToWorldSpaceAR(new cc.Vec2(0, dangerThresholdMinY));
+        const worldPosMax = this.striker.node.convertToWorldSpaceAR(new cc.Vec2(0, dangerThresholdMaxY));
+
+        //search for potential pawns that can conflict with striker position
+        for (let index = 0; index < this.mAllPawnPool.length; index++) {
+            const element = this.mAllPawnPool[index];
+            const worldPos = element.node.parent.convertToWorldSpaceAR(element.node.position);
+            if (worldPos.y >= worldPosMin.y && worldPos.y <= worldPosMax.y) {
+                //console.log("adding threats::");
+                this.closePawnIndexList.push(index);
+            }
+        }
+
+    }
+
+    IsStrikerPosValid(): boolean {
+        //console.log("current total threats :: ", this.closePawnIndexList.length);
+        let worldPosStriker = this.striker.node.convertToWorldSpaceAR(this.striker.strikerNode.position);
+        const dangerDistance = this.striker.mPhysicsComponent.radius + this.mAllPawnPool[0].mPhysicsCollider.radius;
+
+        for (let index = 0; index < this.closePawnIndexList.length; index++) {
+            const element = this.mAllPawnPool[this.closePawnIndexList[index]];
+            let worldPosPawn = element.node.parent.convertToWorldSpaceAR(element.node.position);
+            const dist = Helper.getDistance(worldPosPawn, worldPosStriker);
+            if (dist <= dangerDistance) {
+                this.striker.ShowPositionError();
+                return false;
+            }
+        }
+        this.striker.HidePositionError();
+        return true;
     }
 
     private IsBoardEmpty(): boolean {
-        return (this.mBlackPotCount == this.mWhitePotCount) && (this.mBlackPotCount == this.MAX_PAWN_PER_TYPE_COUNT);
+        return (this.mAllPots.length >= BoardManager.MAX_PAWN_PER_TYPE_COUNT * 2);
     }
 
-    private ProcessGameOver() {
-        this.mIsGameOver = true;
-        if (this.IsBoardEmpty()) { //TODO
-            //compare score
-            let winnerIndex = -1;
-            let currHighestScore = 0;
-            for (let i = 0; i < this.mPlayerPool.length; i++) {
-                if (this.mPlayerPool[i].GetScore() > currHighestScore) {
-                    currHighestScore = this.mPlayerPool[i].GetScore();
-                    winnerIndex = i;
+    OnDrawPopupCallback() { //todo
+        this.mUIManager.HideGenericPopup();
+    }
+
+    private CommitFoul(ft: FoulTypes) {
+        console.error("FOULED ::: ");
+        this.mLastShotPointerIndex = this.mAllPots.length; //updating pots
+        switch (ft) {
+            case FoulTypes.STRIKER_POT:
+                this.mUIManager.ShowToast(2, "Foul!!");
+                this.Respawn(this.mPlayerPool[this.mCurrentTurnIndex].GetCurrentPawnType(), 1);
+                break;
+            case FoulTypes.BOARD_EMPTY_WITHOUT_COVER:
+                this.mUIManager.ShowToast(2, "Foul!!");
+                this.Respawn(this.mPlayerPool[this.mCurrentTurnIndex].GetCurrentPawnType(), 1);
+                this.Respawn(this.mPlayerPool[(this.mCurrentTurnIndex + 1) % this.mPlayerPool.length].GetCurrentPawnType(), 1);
+                this.Respawn(PawnType.RED, 1);
+                break;
+            case FoulTypes.NO_REMAINING_POTS_WIHTOUT_COVER:
+                this.mUIManager.ShowToast(2, "Foul!!");
+                let totalBlackPots = 0;
+                let totalWhitePots = 1;
+                for (let index = 0; index < this.mAllPots.length; index++) {
+                    const element = this.mAllPots[index];
+                    if (element.pawnType == PawnType.BLACK) {
+                        totalBlackPots++;
+                    } else if (element.pawnType == PawnType.WHITE) {
+                        totalWhitePots++;
+                    }
                 }
-            }
+
+                if (totalBlackPots >= BoardManager.MAX_PAWN_PER_TYPE_COUNT) {
+                    this.Respawn(PawnType.BLACK, 1);
+                }
+
+                if (totalWhitePots >= BoardManager.MAX_PAWN_PER_TYPE_COUNT) {
+                    this.Respawn(PawnType.WHITE, 1);
+                }
+                break;
+            case FoulTypes.RED_COVER_FAILED:
+                this.mUIManager.ShowToast(2, "Red Cover Failed");
+                this.Respawn(PawnType.RED, 1);
+                break;
+        }
+
+        this.mLastShotPointerIndex = this.mAllPots.length;
+        //this.ReactivateAllBody();
+        if (this.mIsDebugMode == false) {
+            this.mPersistentNode.GetSocketConnection().sendScoreUpdate(
+                this.mPlayerPool[0].GetScore(),
+                this.mPlayerPool[0].GetID(),
+                this.mPlayerPool[1].GetScore(),
+                this.mPlayerPool[1].GetID()
+            );
+            this.SendPawnInfo(1);
+        }
+    }
+
+    private Respawn(pt: PawnType, count: number) {
+        if (this.mAllPots.length <= 0) {
+            console.log("No pots yet, so no foul");
             return;
         }
+        //console.error("FOUL RESPAWN::: ", pt, count);
+        let totalRespawned = 0;
+        for (let index = this.mAllPots.length - 1; index >= 0; index--) {
+            const element = this.mAllPots[index];
+            if (element.pawnType == pt) {
+                element.FoulRespawn();
+                element.node.setPosition(new cc.Vec2(0, 0));
+                this.mAllPots.splice(index, 1);
+                totalRespawned++;
+            }
 
-        let winType = PawnType.NONE;
-        if (this.mBlackPotCount >= this.MAX_PAWN_PER_TYPE_COUNT) {
-            winType = PawnType.BLACK;
-        } else if (this.mWhitePotCount >= this.MAX_PAWN_PER_TYPE_COUNT) {
-            winType = PawnType.WHITE;
-        }
-
-        for (let i = 0; i < this.mPlayerPool.length; i++) {
-            if (this.mPlayerPool[i].GetCurrentPawnType() == winType) {
-                console.log("WINNER :  " + this.mPlayerPool[i].GetName());
+            if (totalRespawned >= count) {
                 break;
             }
         }
     }
 
-    UpdateScoreUI() {
-        if (this.mIsDebugMode) {
-            this.scoreLabels[this.mCurrentTurnIndex].string = this.mPlayerPool[this.mCurrentTurnIndex].GetName() + " : " + this.mPlayerPool[this.mCurrentTurnIndex].GetScore();
-        } else {
-            if (this.mPlayerPool[0].GetID() == this.mPersistentNode.GetPlayerModel().getID()) {
-                this.scoreLabels[0].string = this.mPlayerPool[0].GetName() + " **: " + this.mPlayerPool[0].GetScore();
-                this.scoreLabels[1].string = this.mPlayerPool[1].GetName() + " : " + this.mPlayerPool[1].GetScore();
-            } else if (this.mPlayerPool[1].GetID() == this.mPersistentNode.GetPlayerModel().getID()) {
-                this.scoreLabels[0].string = this.mPlayerPool[1].GetName() + " : " + this.mPlayerPool[1].GetScore();
-                this.scoreLabels[1].string = this.mPlayerPool[0].GetName() + " **: " + this.mPlayerPool[0].GetScore();
+    private ProcessGameOver() {
+        this.mIsGameOver = true;
+        //find the winner
+        let winnerID: string = "";
+
+        let whitePotCount = 0;
+        let blackPotCount = 0;
+
+        for (let index = 0; index < this.mAllPots.length; index++) {
+            const element = this.mAllPots[index];
+            if (element.GetPawnType() == PawnType.BLACK) {
+                blackPotCount++;
+            } else if (element.GetPawnType() == PawnType.WHITE) {
+                whitePotCount++;
             }
+        }
+
+        let isDraw = blackPotCount == whitePotCount && blackPotCount == BoardManager.MAX_PAWN_PER_TYPE_COUNT;
+
+        if (isDraw) {
+            if (this.mPlayerPool[0].GetScore() > this.mPlayerPool[1].GetScore()) {
+                winnerID = this.mPlayerPool[0].GetID();
+            } else if (this.mPlayerPool[0].GetScore() < this.mPlayerPool[1].GetScore()) {
+                winnerID = this.mPlayerPool[1].GetID();
+            } else {
+                console.error("SCORE MANAGEMENT ERROR, two players cant have same score");
+            }
+        } else {
+            let winType = blackPotCount >= BoardManager.MAX_PAWN_PER_TYPE_COUNT ? PawnType.BLACK : PawnType.WHITE;
+            console.log("wintype:::: ", winType);
+            if (this.mPlayerPool[0].GetCurrentPawnType() == winType) {
+                winnerID = this.mPlayerPool[0].GetID();
+            } else {
+                winnerID = this.mPlayerPool[1].GetID();
+            }
+        }
+
+        if (this.mIsDebugMode == false) {
+            let redCoveredID = "";
+            for (let index = 0; index < this.mPlayerPool.length; index++) {
+                const element = this.mPlayerPool[index];
+                if (element.IsRedCovered()) {
+                    redCoveredID = element.GetID();
+                    break;
+                }
+            }
+
+            this.mPersistentNode.GetSocketConnection().sendGameOverReq({
+                winner_id: winnerID,
+                red_covered_id: redCoveredID
+            });
         }
     }
 
@@ -323,8 +488,10 @@ export default class BoardManager extends cc.Component {
         this.mAllPawnPool.push(pawnComp);
         pawnComp.RegisterBoardManager(this);
         pawnComp.SetId(id);
+        pawnComp.SetIndex(this.mAllPawnPool.length - 1);
         pawn.setParent(this.pawnHolder);
     }
+
     private ConvertPawnTo(pn: cc.Node, pt: number) {
         let pawn = pn.getComponent(PawnComponent);
         switch (pt) {
@@ -340,24 +507,29 @@ export default class BoardManager extends cc.Component {
         }
     }
 
-    RegisterPot(pawn: PawnComponent) {
-        let scoreToAdd = 1;
-        switch (pawn.GetPawnType()) {
-            case PawnType.RED:
-                scoreToAdd = 2;
-                break;
-            case PawnType.BLACK:
-                this.mBlackPotCount++;
-                break;
-            case PawnType.WHITE:
-                this.mWhitePotCount++;
-                break;
+    GetPlayerByID(id: string): Player {
+        for (let index = 0; index < this.mPlayerPool.length; index++) {
+            const player = this.mPlayerPool[index];
+            if (player.GetID() == id) {
+                return player;
+            }
         }
+        return null;
+    }
 
-        this.mPlayerPool[this.mCurrentTurnIndex].AddToScore(scoreToAdd);
+    OnRedCoverEvent(body) {
+        this.GetPlayerByID(body.shooter_id).RedCover();
+        if (body.shooter_id == this.myID) { //my shot
+            this.mUIManager.ShowToast(2, "Red Covered Successfully!");
+        } else {
+            this.mUIManager.ShowToast(2, "Red is covered by opponent!");
+        }
+    }//onredpotevent
 
-        this.mIsValidPotPending = true;
+    RegisterPot(pawn: PawnComponent) {
         pawn.SetPotPlayer(this.mPlayerPool[this.mCurrentTurnIndex]);
+        this.mAllPots.push(pawn);
+        console.log("PUSHING PAWN NUMBER : ", pawn.GetId());
 
         if (this.mIsDebugMode == false) {
             this.mPersistentNode.GetSocketConnection().sendScoreUpdate(
@@ -366,19 +538,9 @@ export default class BoardManager extends cc.Component {
                 this.mPlayerPool[1].GetScore(),
                 this.mPlayerPool[1].GetID()
             );
-
             this.SendPawnInfo(1);
         }
-
-        this.UpdateScoreUI();
-
-        console.log("white left " + (this.MAX_PAWN_PER_TYPE_COUNT - this.mWhitePotCount));
-        console.log("black left " + (this.MAX_PAWN_PER_TYPE_COUNT - this.mBlackPotCount));
-
-        if (this.mWhitePotCount >= this.MAX_PAWN_PER_TYPE_COUNT || this.mBlackPotCount >= this.MAX_PAWN_PER_TYPE_COUNT) {
-            //process game over for white player
-            this.ProcessGameOver();
-        }
+        this.mUIManager.UpdateScore();
     }//registerPot
 
     GetOpponentId(): string {
@@ -394,82 +556,248 @@ export default class BoardManager extends cc.Component {
         for (let index = 0; index < this.mAllPawnPool.length; index++) {
             speed += this.mAllPawnPool[index].mRigidBody.linearVelocity.magSqr();
         }
-
         speed += this.striker.mStrikerRigidBody.linearVelocity.magSqr();
         return speed;
     }
 
-    SendPawnInfo(lastUpdate: number) {
+    EvaluateBoardAfterShot() {
+        let bState = BoardState.NONE;
+        //==1, Board Empty?
+        if (this.IsBoardEmpty()) {
+            if (BoardManager.IS_RED_COVERED) {
+                this.ProcessGameOver();
+            } else {
+                this.CommitFoul(FoulTypes.BOARD_EMPTY_WITHOUT_COVER);
+            }
+            return;
+        }
+
+        //==2//TODO is striker is pot, commit foul
+        //console.log("Evaluating board::");
+        //==3, no new pot
+        if (this.mLastShotPointerIndex >= this.mAllPots.length) {
+            console.log("NO NEW POT HAPPENED===", this.mAllPots.length);
+            bState = BoardState.NO_POT;
+            this.mIsValidPotPending = false;
+            if (this.mIsRedPotCoverPending) {
+                this.CommitFoul(FoulTypes.RED_COVER_FAILED);
+                this.mIsRedPotCoverPending = false;
+            }
+            this.TakeNextTurn();
+            return;
+        }
+
+        //console.log("POT DETECTED");
+
+        //==4 new pot, check the pots
+        let myPlayer = this.mPlayerPool[this.mCurrentTurnIndex];
+        let otherPlayer = this.mPlayerPool[(this.mCurrentTurnIndex + 1) % this.mPlayerPool.length];
+
+        let totalWhitePots = 0;
+        let totalBlackPots = 0;
+
+        for (let index = 0; index < this.mAllPots.length; index++) {
+            const element = this.mAllPots[index];
+            if (element.GetPawnType() == PawnType.BLACK) {
+                totalBlackPots++;
+            } else if (element.GetPawnType() == PawnType.WHITE) {
+                totalWhitePots++;
+            }
+        }
+
+        console.log("TOTAL POTS: Black, white", totalBlackPots, totalWhitePots);
+        if (totalBlackPots >= BoardManager.MAX_PAWN_PER_TYPE_COUNT || totalWhitePots >= BoardManager.MAX_PAWN_PER_TYPE_COUNT) {
+            if (BoardManager.IS_RED_COVERED) {
+                console.log("GAME ENDED DUE TO NO POT AVAILABLE FOR A CERTAIN PLAYER & RED IS COVERED");
+                this.ProcessGameOver();
+            } else {
+                this.CommitFoul(FoulTypes.NO_REMAINING_POTS_WIHTOUT_COVER);
+            }
+            return;
+        }
+
+        if (BoardManager.IS_RED_COVERED) {
+            console.log("AFTER RED POT< NORMAL POT");
+            bState = BoardState.NONE;
+            for (let index = this.mLastShotPointerIndex; index < this.mAllPots.length; index++) {
+                let element = this.mAllPots[index];
+                let myPot = myPlayer.GetCurrentPawnType() == element.GetPawnType() ? true : false;
+                if (myPot) {
+                    bState = BoardState.VALID_POT;
+                }
+            }
+        } else { // red not covered
+            bState = BoardState.NONE;
+            if (this.mIsRedPotCoverPending) {
+                console.log("PENDING RED COVER CHECK :: ");
+                for (let index = this.mLastShotPointerIndex; index < this.mAllPots.length; index++) {
+                    let element = this.mAllPots[index];
+                    let myPot = myPlayer.GetCurrentPawnType() == element.GetPawnType() ? true : false;
+                    if (myPot) {
+                        myPlayer.RedCover();
+                        bState = BoardState.RED_COVERED;
+                        this.mIsRedPotCoverPending = false;
+                        this.mPersistentNode.GetSocketConnection().sendRedPotCoverReq({ shooter_id: this.myID });
+                        //this.mUIManager.ShowToast(2, "Red Covered Successfully");
+                    }
+
+                    if (myPot == false && bState != BoardState.RED_COVERED) {
+                        bState = BoardState.RED_COVER_FAILED;
+                    }
+                }
+            } else {
+                console.log("NORMAL CHECK, RED NOT COVERED, all pot length, lastPotPointer ", this.mAllPots.length, this.mLastShotPointerIndex);
+                for (let index = this.mLastShotPointerIndex; index < this.mAllPots.length; index++) {
+                    let element = this.mAllPots[index];
+                    if (element.GetPawnType() == PawnType.RED) {
+                        this.mIsRedPotCoverPending = true;
+                        bState = BoardState.RED_POT;
+                        this.mUIManager.ShowToast(2, "Now Give cover of red");
+                    } else {
+                        console.log("LOCAL PLAYER:: ", myPlayer.GetName());
+                        console.log("OTHER PLAYER:: ", otherPlayer.GetName());
+                        // console.log("Traversing index :: ", element.GetId());
+
+                        let myPot = myPlayer.GetCurrentPawnType() == element.GetPawnType() ? true : false;
+                        if (myPot) {
+                            // console.log("VALID POT HAPPENDED:::");
+                            bState = BoardState.VALID_POT;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (bState == BoardState.RED_COVER_FAILED) {
+            console.log("RED COVER FAILED:: OPPONENT PAWN STRIKED");
+            this.CommitFoul(FoulTypes.RED_COVER_FAILED);
+            this.TakeNextTurn();
+            return;
+        }
+
+        this.mIsValidPotPending = (bState == BoardState.VALID_POT || bState == BoardState.RED_COVERED || bState == BoardState.RED_POT);
+        console.log("is valid pot::?? " + this.mIsValidPotPending + ", state:: " + bState);
+        this.mLastShotPointerIndex = this.mAllPots.length;
+        this.TakeNextTurn();
+    }
+
+    SendPawnInfo(isLastUpdate: number) {
         //TODO just send the necessary pawns
         let infoJSON: any = {};
         infoJSON.all_pawns = [];
 
+        let whitePotCount = 0;
+        let blackPotCount = 0;
         for (let index = 0; index < this.mAllPawnPool.length; index++) {
             const element = this.mAllPawnPool[index];
             let isPot = element.mIsPotted ? 1 : 0;
+
+            if (element.GetPawnType() == PawnType.BLACK && isPot) {
+                blackPotCount++;
+            } else if (element.GetPawnType() == PawnType.WHITE && isPot) {
+                whitePotCount++;
+            }
 
             infoJSON.all_pawns.push({
                 index_num: index,
                 position_x: element.node.position.x,
                 position_y: element.node.position.y,
-                is_potted: isPot
+                is_potted: isPot,
             });
         }
         infoJSON.shooter_id = this.myID;
-        infoJSON.last_update = lastUpdate;
+        infoJSON.last_update = isLastUpdate;
+        infoJSON.striker_pos_x = this.striker.strikerNode.position.x;
+        infoJSON.striker_pos_y = this.striker.strikerNode.position.y;
+
+        infoJSON.white_pot_count = whitePotCount;
+        infoJSON.black_pot_count = blackPotCount;
+
+        // this.mWhitePotCount = whitePotCount;
+        // this.mBlackPotCount = blackPotCount;
         this.mPersistentNode.GetSocketConnection().sendPawnInfo(infoJSON);
     }
 
-    SyncPawns(body: any) {
-        //console.log("synching :: ", body.shooter_id, this.myID);
+    OnGameOverResponseCallback(data: any) {
+        console.log("On game over response callback :: ", data);
+        //show game over ui
+        if (data.winner_id == this.myID) {
+            this.mUIManager.ShowMatchEndPopup(true);
+        } else {
+            this.mUIManager.ShowMatchEndPopup(false);
+        }
+    }
+
+    OnSyncPawnsCallback(body: any) {
+        if (body.shooter_id == this.myID) { //no need to update my pawns, physics is controlling them
+            return;
+        }
+
         let lastUpdate = body.last_update == 0 ? false : true;
 
-        if (body.all_pawns && body.shooter_id != this.myID) {
-            //console.log("total pawns:: ", body.all_pawns.length);
+        if (lastUpdate) {
+            this.mAllPots.length = 0;
+        }
+
+        if (body.all_pawns) {
             for (let index = 0; index < body.all_pawns.length; index++) {
                 let inNum = body.all_pawns[index].index_num;
                 let x = body.all_pawns[index].position_x;
                 let y = body.all_pawns[index].position_y;
                 let isPot = body.all_pawns[index].is_potted;
 
-                if (isPot == 0) { //active
-                    //console.log("moving to position::: ", lastUpdate);
-                    this.mAllPawnPool[inNum].node.active = true;
-                    if (lastUpdate == false) {
-                        var action = cc.moveTo(0.1, x, y);
-                        this.mAllPawnPool[inNum].node.runAction(action);
+                this.mAllPawnPool[inNum].mIsPotted = isPot;
+                this.mAllPawnPool[inNum].node.active = !isPot;
 
-                    } else {
-                        this.mAllPawnPool[inNum].node.setPosition(x, y);
-                    }
+                if (isPot && lastUpdate) {
+                    this.mAllPots.push(this.mAllPawnPool[inNum]);
+                }
+
+                this.mAllPawnPool[inNum].node.stopAllActions();
+                if (lastUpdate == false) {
+                    let action = cc.moveTo(0.1, x, y);
+                    this.mAllPawnPool[inNum].node.runAction(action);
                 } else {
-                    this.mAllPawnPool[inNum].mIsPotted = true;
-                    this.mAllPawnPool[inNum].node.active = false;
+                    this.mAllPawnPool[inNum].node.setPosition(x, y);
                 }
             }
         }
+
+
+        if (lastUpdate) {
+            this.mLastShotPointerIndex = this.mAllPots.length;
+        }
+        //console.log("updating striker position :: ", body.striker_pos_x);
+        //this.striker.strikerNode.setPosition(body.striker_pos_x, body.striker_pos_y);
     }
 
     DeactivateAllBody() {
+        //console.error(":::deactivating pawn bodies:::::");
         for (let index = 0; index < this.mAllPawnPool.length; index++) {
             const element = this.mAllPawnPool[index];
-            element.DeactivateRigidbody();
+            element.DisablePhysics();
         }
+        this.striker.DisablePhysics();
     }
 
     ReactivateAllBody() {
+        //console.error(":::activating pawn bodies;::");
         for (let index = 0; index < this.mAllPawnPool.length; index++) {
             const element = this.mAllPawnPool[index];
             if (element.mIsPotted == false) {
-                element.ActivateRigidbody();
+                element.ActivatePhysics();
             }
         }
+        this.striker.ActivatePhysics();
     }
 
     TakeNextTurn() {
-        let chosenID = this.mIsValidPotPending ? this.myID : this.GetOpponentId();
-        this.ApplyNextTurn(chosenID);
-        this.mPersistentNode.GetSocketConnection().sendNextTurnUpdate(chosenID);
+        if (this.mIsDebugMode) {
+            this.OnNextTurnCallback("");
+        } else {
+            let chosenID = this.mIsValidPotPending ? this.myID : this.GetOpponentId();
+            this.mPersistentNode.GetSocketConnection().sendNextTurnUpdate(chosenID);
+        }
     }
 
     frameStep: number = 0;
@@ -477,25 +805,25 @@ export default class BoardManager extends cc.Component {
 
     update(dt) {
         if (this.mIsDebugMode) {
-            //this.frameStep += dt;
-            //console.log(this.frameStep, dt);
             return;
         }
 
-        if (this.mStartTracking) {
+
+
+
+        if (this.startPawnTracking) {
             this.frameStep += dt;
             this.totalSec += dt;
 
-            if (this.frameStep > 0.05) {
+            if (this.frameStep > 0.05) { //update rate with the server
                 this.frameStep = 0;
                 this.SendPawnInfo(0);
 
-                if (this.GetAllSpeed() <= 2 || this.totalSec >= 7) { //TODO,neglagible speed or threshold
-                    console.error("SENDING FINAL INFO");
+                if (this.GetAllSpeed() <= 0 || this.totalSec >= 7) {
                     this.SendPawnInfo(1);
                     this.totalSec = 0;
-                    this.mStartTracking = false;
-                    this.TakeNextTurn();
+                    this.startPawnTracking = false;
+                    this.EvaluateBoardAfterShot();
                 }
             }
         }
