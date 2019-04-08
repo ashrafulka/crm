@@ -143,6 +143,7 @@ export default class ControlManager extends cc.Component {
 
     OnSlide() {
         this.striker.OnSlide(this.controlSlider.progress);
+        this.mBoardManager.SendPawnInfo(0, true);
         this.mBoardManager.IsStrikerPosValid();
     }
 

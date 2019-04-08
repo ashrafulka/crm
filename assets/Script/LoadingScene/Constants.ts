@@ -4,7 +4,7 @@ export class Constants {
     static HEROKU_WS_ADDR: string = "wss://carrom-ulka.herokuapp.com";
     static SIGNED_PLAYER_ASYNC_FLAG = "meta-data";
     static PERSISTENT_NODE_NAME = "PersistentNode";
-    static MAX_TIME_WAIT_PER_SHOT = 10;
+    static MAX_TIME_WAIT_PER_SHOT = 35;
     static MAX_TIME_WAIT_IN_SEC: number = 125;
 
     static MAX_RETRY_COUNT: number = 3;

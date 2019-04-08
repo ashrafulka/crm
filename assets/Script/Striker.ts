@@ -23,13 +23,8 @@ export default class Striker extends cc.Component {
     private mFullSpanX: number = 0;
 
     onLoad() {
-        //console.log("physics component :: " + this.mPhysicsComponent.density);
-        //console.log("STRIKER ONLOAD::");
-
         this.mStrikerRigidBody = this.strikerNode.getComponent(cc.RigidBody);
         this.mPhysicsComponent = this.strikerNode.getComponent(cc.PhysicsCircleCollider);
-
-        //console.log("PHYSICS COMP RADIUS :: " + this.mPhysicsComponent.radius);
     }
 
     start() {
@@ -50,7 +45,7 @@ export default class Striker extends cc.Component {
     ActivatePhysics() {
         this.mStrikerRigidBody.active = true;
         this.mPhysicsComponent.enabled = true;
-        this.mStrikerRigidBody.allowSleep = true;
+        this.mStrikerRigidBody.allowSleep = false;
     }
 
     DisablePhysics() {
@@ -60,7 +55,6 @@ export default class Striker extends cc.Component {
 
     ResetStriker() {
         this.strikerNode.position = this.midPos.position;
-        //this.strickerBody.getComponent(cc.RigidBody).applyLinearImpulse(new cc.Vec2(0,3000), cc.Vec2.ZERO, true);
         this.mStrikerRigidBody.angularVelocity = 0;
         this.mStrikerRigidBody.linearVelocity = cc.Vec2.ZERO;
 

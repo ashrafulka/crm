@@ -249,23 +249,21 @@ export default class BoardManager extends cc.Component {
         if (this.mIsDebugMode == false) {
             this.mPersistentNode.GetSocketConnection().sendNewShotRequest(forceVec, magnitude);
         }
+        this.mUIManager.StopTimer();
     }
 
     OnTakeShotCallback(body: any) {
-        if (body.player_id !== this.myID) {
-            //console.log("PROPAGATING FOR ::: " + this.mPersistentNode.GetPlayerModel().getName());
-            //this.striker.ApplyForce(new cc.Vec2(body.force_x, body.force_y), body.mag);
-        }
-
+        // if (body.player_id !== this.myID) {
+        //     //console.log("PROPAGATING FOR ::: " + this.mPersistentNode.GetPlayerModel().getName());
+        //     //this.striker.ApplyForce(new cc.Vec2(body.force_x, body.force_y), body.mag);
+        // }
         this.mUIManager.StopTimer();
     }
 
     OnUpdateScoreCallback(body: any) {
         this.mPlayerPool[0].SetScore(body.p1_score);
         this.mPlayerPool[1].SetScore(body.p2_score);
-
         this.mUIManager.UpdateScore();
-        //this.UpdateScoreUI();
     }
 
     ApplyTurn() {
@@ -274,7 +272,7 @@ export default class BoardManager extends cc.Component {
     }
 
     private UpdateStrikerPos() {
-        this.striker.node.active = true;
+        //this.striker.node.active = true;
 
         const startPosY = this.mIsMyShot ? -this.mStrikerDistanceFromMid : this.mStrikerDistanceFromMid;
         this.striker.strikerNode.setPosition(0, startPosY);
@@ -681,38 +679,40 @@ export default class BoardManager extends cc.Component {
         this.TakeNextTurn();
     }
 
-    SendPawnInfo(isLastUpdate: number) {
+    SendPawnInfo(isLastUpdate: number, onlyStrikerUpdate = false) {
         //TODO just send the necessary pawns
         let infoJSON: any = {};
-        infoJSON.all_pawns = [];
 
-        let whitePotCount = 0;
-        let blackPotCount = 0;
-        for (let index = 0; index < this.mAllPawnPool.length; index++) {
-            const element = this.mAllPawnPool[index];
-            let isPot = element.mIsPotted ? 1 : 0;
+        if (onlyStrikerUpdate == false) {
+            infoJSON.all_pawns = [];
+            let whitePotCount = 0;
+            let blackPotCount = 0;
 
-            if (element.GetPawnType() == PawnType.BLACK && isPot) {
-                blackPotCount++;
-            } else if (element.GetPawnType() == PawnType.WHITE && isPot) {
-                whitePotCount++;
+            for (let index = 0; index < this.mAllPawnPool.length; index++) {
+                const element = this.mAllPawnPool[index];
+                let isPot = element.mIsPotted ? 1 : 0;
+
+                if (element.GetPawnType() == PawnType.BLACK && isPot) {
+                    blackPotCount++;
+                } else if (element.GetPawnType() == PawnType.WHITE && isPot) {
+                    whitePotCount++;
+                }
+
+                infoJSON.all_pawns.push({
+                    index_num: index,
+                    position_x: element.node.position.x,
+                    position_y: element.node.position.y,
+                    is_potted: isPot,
+                });
             }
-
-            infoJSON.all_pawns.push({
-                index_num: index,
-                position_x: element.node.position.x,
-                position_y: element.node.position.y,
-                is_potted: isPot,
-            });
+            infoJSON.white_pot_count = whitePotCount;
+            infoJSON.black_pot_count = blackPotCount;
         }
+
         infoJSON.shooter_id = this.myID;
         infoJSON.last_update = isLastUpdate;
         infoJSON.striker_pos_x = this.striker.strikerNode.position.x;
         infoJSON.striker_pos_y = this.striker.strikerNode.position.y;
-
-        infoJSON.white_pot_count = whitePotCount;
-        infoJSON.black_pot_count = blackPotCount;
-
         // this.mWhitePotCount = whitePotCount;
         // this.mBlackPotCount = blackPotCount;
         this.mPersistentNode.GetSocketConnection().sendPawnInfo(infoJSON);
@@ -734,6 +734,7 @@ export default class BoardManager extends cc.Component {
         }
 
         let lastUpdate = body.last_update == 0 ? false : true;
+        const updateRate = 0.06;
 
         if (lastUpdate) {
             this.mAllPots.length = 0;
@@ -755,7 +756,7 @@ export default class BoardManager extends cc.Component {
 
                 this.mAllPawnPool[inNum].node.stopAllActions();
                 if (lastUpdate == false) {
-                    let action = cc.moveTo(0.1, x, y);
+                    let action = cc.moveTo(updateRate, x, y);
                     this.mAllPawnPool[inNum].node.runAction(action);
                 } else {
                     this.mAllPawnPool[inNum].node.setPosition(x, y);
@@ -763,12 +764,14 @@ export default class BoardManager extends cc.Component {
             }
         }
 
-
         if (lastUpdate) {
             this.mLastShotPointerIndex = this.mAllPots.length;
+            this.striker.strikerNode.setPosition(new cc.Vec2(-body.striker_pos_x, -body.striker_pos_y));
+        } else {
+            this.striker.strikerNode.stopAllActions();
+            let strikerMoveAction = cc.moveTo(updateRate, -body.striker_pos_x, -body.striker_pos_y);
+            this.striker.strikerNode.runAction(strikerMoveAction);
         }
-        //console.log("updating striker position :: ", body.striker_pos_x);
-        //this.striker.strikerNode.setPosition(body.striker_pos_x, body.striker_pos_y);
     }
 
     DeactivateAllBody() {
@@ -807,9 +810,6 @@ export default class BoardManager extends cc.Component {
         if (this.mIsDebugMode) {
             return;
         }
-
-
-
 
         if (this.startPawnTracking) {
             this.frameStep += dt;
