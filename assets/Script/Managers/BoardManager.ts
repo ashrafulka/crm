@@ -313,7 +313,6 @@ export default class BoardManager extends cc.Component {
                 this.closePawnIndexList.push(index);
             }
         }
-
     }
 
     IsStrikerPosValid(): boolean {
