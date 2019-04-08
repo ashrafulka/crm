@@ -86,6 +86,7 @@ export default class BoardManager extends cc.Component {
         this.mAllPawnPool.length = 0; //reset
         this.mLogger = new Logger(this.node.name);
         this.mUIManager = this.getComponent(GameUIManager);
+        this.striker.RegisterBoardManager(this);
     }
 
     InitUI() {
@@ -95,7 +96,6 @@ export default class BoardManager extends cc.Component {
         } else {
             this.mUIManager.InitializePlayerNodes(this.mPlayerPool[1], this.mPlayerPool[0]);
         }
-        //console.log("Initializing UI");
     }
 
     InitializeCarromBoard() {
@@ -253,10 +253,6 @@ export default class BoardManager extends cc.Component {
     }
 
     OnTakeShotCallback(body: any) {
-        // if (body.player_id !== this.myID) {
-        //     //console.log("PROPAGATING FOR ::: " + this.mPersistentNode.GetPlayerModel().getName());
-        //     //this.striker.ApplyForce(new cc.Vec2(body.force_x, body.force_y), body.mag);
-        // }
         this.mUIManager.StopTimer();
     }
 
@@ -267,70 +263,8 @@ export default class BoardManager extends cc.Component {
     }
 
     ApplyTurn() {
-        this.GetClosePawnList();
-        this.UpdateStrikerPos();
-    }
-
-    private UpdateStrikerPos() {
-        //this.striker.node.active = true;
-
-        const startPosY = this.mIsMyShot ? -this.mStrikerDistanceFromMid : this.mStrikerDistanceFromMid;
-        this.striker.strikerNode.setPosition(0, startPosY);
-
-        let startPosX = this.striker.mPhysicsComponent.radius;
-        let counter = 0;
-        while (!this.IsStrikerPosValid()) { //TODO check both ways
-            counter++;
-            if (counter % 2 == 0) { //check right
-                startPosX = (counter / 2) * this.striker.mPhysicsComponent.radius;
-            } else { //check right
-                startPosX = -((counter + 1) / 2) * this.striker.mPhysicsComponent.radius;
-            }
-            this.striker.strikerNode.setPosition(startPosX, startPosY);
-        }
-    }
-
-    closePawnIndexList: Array<number> = [];
-
-    GetClosePawnList() {
-        this.closePawnIndexList.length = 0;
-
-        const startPosY = this.mIsMyShot ? -this.mStrikerDistanceFromMid : this.mStrikerDistanceFromMid;
-        const dangerDistance = this.striker.mPhysicsComponent.radius + this.mAllPawnPool[0].mPhysicsCollider.radius;
-
-        const dangerThresholdMinY = startPosY - dangerDistance;
-        const dangerThresholdMaxY = startPosY + dangerDistance;
-
-        const worldPosMin = this.striker.node.convertToWorldSpaceAR(new cc.Vec2(0, dangerThresholdMinY));
-        const worldPosMax = this.striker.node.convertToWorldSpaceAR(new cc.Vec2(0, dangerThresholdMaxY));
-
-        //search for potential pawns that can conflict with striker position
-        for (let index = 0; index < this.mAllPawnPool.length; index++) {
-            const element = this.mAllPawnPool[index];
-            const worldPos = element.node.parent.convertToWorldSpaceAR(element.node.position);
-            if (worldPos.y >= worldPosMin.y && worldPos.y <= worldPosMax.y) {
-                //console.log("adding threats::");
-                this.closePawnIndexList.push(index);
-            }
-        }
-    }
-
-    IsStrikerPosValid(): boolean {
-        //console.log("current total threats :: ", this.closePawnIndexList.length);
-        let worldPosStriker = this.striker.node.convertToWorldSpaceAR(this.striker.strikerNode.position);
-        const dangerDistance = this.striker.mPhysicsComponent.radius + this.mAllPawnPool[0].mPhysicsCollider.radius;
-
-        for (let index = 0; index < this.closePawnIndexList.length; index++) {
-            const element = this.mAllPawnPool[this.closePawnIndexList[index]];
-            let worldPosPawn = element.node.parent.convertToWorldSpaceAR(element.node.position);
-            const dist = Helper.getDistance(worldPosPawn, worldPosStriker);
-            if (dist <= dangerDistance) {
-                this.striker.ShowPositionError();
-                return false;
-            }
-        }
-        this.striker.HidePositionError();
-        return true;
+        this.striker.GetClosePawnList(this.mIsMyShot, this.mAllPawnPool);
+        this.striker.UpdateStrikerPos(this.mIsMyShot, this.mAllPawnPool);
     }
 
     private IsBoardEmpty(): boolean {

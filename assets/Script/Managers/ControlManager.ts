@@ -11,27 +11,13 @@ const { ccclass, property, executionOrder } = cc._decorator;
 @ccclass
 export default class ControlManager extends cc.Component {
 
-    @property(cc.Slider)
-    controlSlider: cc.Slider = null;
+    @property(cc.Slider) controlSlider: cc.Slider = null;
+    @property(Striker) striker: Striker = null;
+    @property(GizmoGraphic) gizmosComp: GizmoGraphic = null;
 
-    @property(Striker)
-    striker: Striker = null;
-
-    @property(GizmoGraphic)
-    gizmosComp: GizmoGraphic = null;
-
-    @property(cc.Node)
-    dummyNode: cc.Node = null;
-
-    @property(cc.Button)
-    nextTurnBtn: cc.Button = null;
-
-    @property
-    minDistanceRequired: number = 0;
-    @property
-    maxDistanceAllowed: number = 0;
-    @property
-    fixForceAmount: number = 0;
+    @property minDistanceRequired: number = 0;
+    @property maxDistanceAllowed: number = 0;
+    @property fixForceAmount: number = 0;
 
     mStrikerStartPos: cc.Vec2 = cc.Vec2.ZERO;
     mIsTouchStarted: boolean = false;
@@ -49,7 +35,7 @@ export default class ControlManager extends cc.Component {
         cc.director.getCollisionManager().enabled = true;
 
         this.controlSlider.slideEvents.push(Helper.getEventHandler(this.node, "ControlManager", "OnSlide"));
-        this.nextTurnBtn.clickEvents.push(Helper.getEventHandler(this.node, "ControlManager", "OnNextTurnBtnClick"));
+        //this.nextTurnBtn.clickEvents.push(Helper.getEventHandler(this.node, "ControlManager", "OnNextTurnBtnClick"));
 
         //cc.systemEvent.on(cc.SystemEvent.EventType.KEY_DOWN, this.OnKeyDown, this);
 
@@ -64,28 +50,28 @@ export default class ControlManager extends cc.Component {
         this.mPersistentNode = this.mBoardManager.mPersistentNode;
     }
 
-    OnNextTurnBtnClick() {
-        if (this.mBoardManager.mIsDebugMode) {
-            this.mBoardManager.OnNextTurnCallback("");
-            return;
-        }
+    // OnNextTurnBtnClick() {
+    //     if (this.mBoardManager.mIsDebugMode) {
+    //         this.mBoardManager.OnNextTurnCallback("");
+    //         return;
+    //     }
 
-        let chosenId = "";
-        if (this.mBoardManager.mIsValidPotPending) {
-            chosenId = this.mPersistentNode.GetPlayerModel().getID();
-        } else { //toggle player update
-            chosenId = this.mBoardManager.GetOpponentId();
-        }
-        this.mPersistentNode.GetSocketConnection().sendNextTurnUpdate(chosenId);
-        this.mBoardManager.OnNextTurnCallback(chosenId);
-    }//onnextturnbtnclick
+    //     let chosenId = "";
+    //     if (this.mBoardManager.mIsValidPotPending) {
+    //         chosenId = this.mPersistentNode.GetPlayerModel().getID();
+    //     } else { //toggle player update
+    //         chosenId = this.mBoardManager.GetOpponentId();
+    //     }
+    //     this.mPersistentNode.GetSocketConnection().sendNextTurnUpdate(chosenId);
+    //     this.mBoardManager.OnNextTurnCallback(chosenId);
+    // }//onnextturnbtnclick
 
     OnStrickerTouchStart(event: cc.Event.EventTouch) {
         if (this.mBoardManager.mIsMyShot == false) {
             return;
         }
 
-        if (this.mBoardManager.IsStrikerPosValid() == false) {
+        if (this.striker.IsStrikerPosValid(this.mBoardManager.mAllPawnPool) == false) {
             console.log("striker position not valid");
             return;
         }
@@ -100,11 +86,10 @@ export default class ControlManager extends cc.Component {
             return;
         }
 
-        if (this.mBoardManager.IsStrikerPosValid() == false) {
+        if (this.striker.IsStrikerPosValid(this.mBoardManager.mAllPawnPool) == false) {
             return;
         }
 
-        ///TODO:: see if the striker is in a valid position first
         let touch = event.getTouches()[0];
         let clear = true;
         let touchDistance = Helper.getDistance(this.mStrikerCenter, touch.getLocation());
@@ -144,7 +129,7 @@ export default class ControlManager extends cc.Component {
     OnSlide() {
         this.striker.OnSlide(this.controlSlider.progress);
         this.mBoardManager.SendPawnInfo(0, true);
-        this.mBoardManager.IsStrikerPosValid();
+        this.striker.IsStrikerPosValid(this.mBoardManager.mAllPawnPool);
     }
 
     onDestroy() {
