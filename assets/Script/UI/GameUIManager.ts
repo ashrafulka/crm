@@ -154,7 +154,7 @@ export default class GameUIManager extends cc.Component {
             this.mCurrentRunningLabel.string = timeRemain < 0 ? "0" : timeRemain.toString();
             if (timeRemain <= 0) {
                 this.timerTracking = false;
-                this.mBoardManager.ShotTimeOutRequest();
+                this.mBoardManager.mBMWithFriend.SendTimeOutRequest();
             }
         } else {
             this.totalSec = 0;

@@ -144,7 +144,7 @@ export default class GameSceneComponent extends cc.Component {
         this.mBoardManager.mPlayerPool.push(new Player("id0", "p0")); // room master
         this.mBoardManager.mPlayerPool.push(new Player("id1", "p1")); // 2nd player
         this.mBoardManager.InitUI();
-        this.mBoardManager.OnUpdateScoreCallback({
+        this.mBoardManager.mBMWithFriend.OnUpdateScoreCallback({
             p1_score: 0,
             p2_score: 0
         });
@@ -186,7 +186,7 @@ export default class GameSceneComponent extends cc.Component {
         console.error("CURRENT INDEX:: ", this.mBoardManager.mCurrentTurnIndex);
         this.mBoardManager.InitializeCarromBoard(); //must be initiated after isMyShot is initialized
         this.mBoardManager.InitUI();
-        this.mBoardManager.OnUpdateScoreCallback({
+        this.mBoardManager.mBMWithFriend.OnUpdateScoreCallback({
             p1_score: 0,
             p2_score: 0
         });
