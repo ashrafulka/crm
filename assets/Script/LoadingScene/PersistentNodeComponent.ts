@@ -68,7 +68,7 @@ export default class PersistentNodeComponent extends cc.Component {
             if (msgDecoded.success && msgDecoded.success == true) {
                 self.mLogger.Log("Login success: ", msg);
                 self.node.emit(GameEvents.SUCCESS_LOGIN);
-                self.GetGameState().ChangeState(States.LOGGED_IN);
+                //self.GetGameState().ChangeState(States.LOGGED_IN);
             } else {
                 self.mLogger.LogError("ERROR : LOGGIN IN : " + msg);
                 self.node.emit(GameEvents.FAILED_LOGIN);

@@ -18,6 +18,9 @@
       },
       {
         "__id__": 278
+      },
+      {
+        "__id__": 284
       }
     ],
     "_active": true,
@@ -44,9 +47,9 @@
     },
     "_scale": {
       "__type__": "cc.Vec3",
-      "x": 0.3330319149841503,
-      "y": 0.3330319149841503,
-      "z": 0.3330319149841503
+      "x": 0.5416666666666667,
+      "y": 0.5416666666666667,
+      "z": 0.5416666666666667
     },
     "_quat": {
       "__type__": "cc.Quat",
@@ -4983,7 +4986,7 @@
     "_contentSize": {
       "__type__": "cc.Size",
       "width": 315.74,
-      "height": 80
+      "height": 200
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -4993,7 +4996,7 @@
     "_position": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": 75,
+      "y": 62,
       "z": 0
     },
     "_scale": {
@@ -5029,10 +5032,10 @@
     "_srcBlendFactor": 1,
     "_dstBlendFactor": 771,
     "_useOriginalSize": false,
-    "_string": "Failed to connect \nwith your friend",
-    "_N$string": "Failed to connect \nwith your friend",
+    "_string": "MSG",
+    "_N$string": "MSG",
     "_fontSize": 40,
-    "_lineHeight": 40,
+    "_lineHeight": 100,
     "_enableWrapText": true,
     "_N$file": null,
     "_isSystemFontUsed": true,
@@ -5040,7 +5043,7 @@
     "_N$horizontalAlign": 1,
     "_N$verticalAlign": 1,
     "_N$fontFamily": "Arial",
-    "_N$overflow": 0,
+    "_N$overflow": 2,
     "_id": "5bxCpWCtVJOrsjw15wgqLn"
   },
   {
@@ -12534,12 +12537,6 @@
     "devToolBtn": {
       "__id__": 172
     },
-    "waitingPanelNode": {
-      "__id__": 83
-    },
-    "failedToConnectNode": {
-      "__id__": 94
-    },
     "_id": "62VQg4WKdC2J6zusNMlDui"
   },
   {
@@ -12610,10 +12607,6 @@
     },
     "gizmosComp": {
       "__id__": 277
-    },
-    "dummyNode": null,
-    "nextTurnBtn": {
-      "__id__": 162
     },
     "minDistanceRequired": 50,
     "maxDistanceAllowed": 120,
@@ -12735,6 +12728,9 @@
       "__id__": 138
     },
     "allPopups": [],
+    "matchEndPopup": {
+      "__id__": 140
+    },
     "playerUIList": [
       {
         "__id__": 281
@@ -12743,9 +12739,6 @@
         "__id__": 282
       }
     ],
-    "matchEndPopup": {
-      "__id__": 140
-    },
     "matchEndOkBtn": {
       "__id__": 148
     },
@@ -12760,6 +12753,9 @@
     },
     "toastNode": {
       "__id__": 173
+    },
+    "waitPanel": {
+      "__id__": 83
     },
     "_id": "b3i7Hu0dBKi5hQS45A9y5f"
   },
@@ -12880,5 +12876,78 @@
     },
     "allKeys": [],
     "_id": "9aomdHhQtGPYfUNckkHj+P"
+  },
+  {
+    "__type__": "cc.Node",
+    "_name": "BotLoader",
+    "_objFlags": 0,
+    "_parent": {
+      "__id__": 1
+    },
+    "_children": [],
+    "_active": true,
+    "_level": 1,
+    "_components": [
+      {
+        "__id__": 285
+      }
+    ],
+    "_prefab": null,
+    "_opacity": 255,
+    "_color": {
+      "__type__": "cc.Color",
+      "r": 255,
+      "g": 255,
+      "b": 255,
+      "a": 255
+    },
+    "_contentSize": {
+      "__type__": "cc.Size",
+      "width": 0,
+      "height": 0
+    },
+    "_anchorPoint": {
+      "__type__": "cc.Vec2",
+      "x": 0.5,
+      "y": 0.5
+    },
+    "_position": {
+      "__type__": "cc.Vec3",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "_scale": {
+      "__type__": "cc.Vec3",
+      "x": 1,
+      "y": 1,
+      "z": 1
+    },
+    "_quat": {
+      "__type__": "cc.Quat",
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "w": 1
+    },
+    "_skewX": 0,
+    "_skewY": 0,
+    "_zIndex": 0,
+    "_is3DNode": false,
+    "groupIndex": 0,
+    "_id": "bcckA7pxpPlp8kPTRUliJ/"
+  },
+  {
+    "__type__": "d80a7kVSG9JNYNGcJLdZFMy",
+    "_name": "",
+    "_objFlags": 0,
+    "node": {
+      "__id__": 284
+    },
+    "_enabled": true,
+    "botList": {
+      "__uuid__": "c25e9b3f-a6fb-4110-ad4d-8931e0b5ce6c"
+    },
+    "_id": "75zsNrxXFAg6hzG53y9Rwb"
   }
 ]

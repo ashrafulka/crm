@@ -5,38 +5,23 @@ import Helper from "../Helpers/Helper";
 import PlayerUI from "./PlayerUI";
 import { Player } from "../Player";
 import BoardManager from "../Managers/BoardManager";
+import WaitingPanelComponent from "./WaitingPanelComponent";
 
 const { ccclass, property } = cc._decorator;
 
 @ccclass
 export default class GameUIManager extends cc.Component {
 
-    @property(GenericPopup)
-    genericPopup: GenericPopup = null;
-
-    @property(cc.Node)
-    allPopups: Array<cc.Node> = [];
-
-    @property([PlayerUI])
-    playerUIList: PlayerUI[] = [];
-
-    @property(cc.Node)
-    matchEndPopup: cc.Node = null;
-
-    @property(cc.Button)
-    matchEndOkBtn: cc.Button = null;
-
-    @property(cc.Button)
-    rematchBtn: cc.Button = null;
-
-    @property(cc.Label)
-    matchEndLabel: cc.Label = null;
-
-    @property(cc.Label)
-    toastLabel: cc.Label = null;
-
-    @property(cc.Node)
-    toastNode: cc.Node = null;
+    @property(GenericPopup) genericPopup: GenericPopup = null;
+    @property(cc.Node) allPopups: Array<cc.Node> = [];
+    @property(cc.Node) matchEndPopup: cc.Node = null;
+    @property([PlayerUI]) playerUIList: PlayerUI[] = [];
+    @property(cc.Button) matchEndOkBtn: cc.Button = null;
+    @property(cc.Button) rematchBtn: cc.Button = null;
+    @property(cc.Label) matchEndLabel: cc.Label = null;
+    @property(cc.Label) toastLabel: cc.Label = null;
+    @property(cc.Node) toastNode: cc.Node = null;
+    @property(cc.Node) waitPanel: cc.Node = null;
 
     mPlayerList: Array<Player> = [];
 
@@ -61,6 +46,27 @@ export default class GameUIManager extends cc.Component {
         this.genericPopup.node.active = false;
     }
 
+    ShowWaitPanel() {
+        let self = this;
+        this.waitPanel.active = true;
+        this.waitPanel.getComponent(WaitingPanelComponent).initialize(Constants.MAX_TIME_WAIT_IN_SEC, function () { //failed to connect
+            self.waitPanel.active = false;
+            self.waitPanel.getComponent(WaitingPanelComponent).clear();
+            self.ShowGenericPopup(
+                "Failed to connect to server. Sorry for the inconveniences. We will fix it asap.",
+                "Error",
+                "Go Back",
+                Helper.getEventHandler(self.node, "GameSceneComponent", "OnServerErrorAck"),
+                GenericPopupBtnType.NEGATIVE
+            );
+        });
+    }
+
+    HideWaitPanel() {
+        this.waitPanel.active = false;
+        this.waitPanel.getComponent(WaitingPanelComponent).clear();
+    }
+
     //show match end popup
     ShowMatchEndPopup(isWin: boolean) {
         this.matchEndPopup.active = true;
@@ -76,6 +82,9 @@ export default class GameUIManager extends cc.Component {
             const element = this.allPopups[index];
             element.active = false;
         }
+
+        this.HideWaitPanel();
+        this.genericPopup.node.active = false;
     }
 
     OnMatchEndOkBtnClick() {

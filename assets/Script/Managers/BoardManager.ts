@@ -400,6 +400,7 @@ export default class BoardManager extends cc.Component {
                 this.mIsRedPotCoverPending = false;
                 this.CommitFoul(FoulTypes.RED_COVER_FAILED);
             }
+            this.TakeNextTurn();
             return;
         }
 

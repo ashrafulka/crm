@@ -110,12 +110,12 @@ export class SocketConnection {
 
         socket.on(GameEvents.ROOM_CREATION_SUCCESS, function (data) {
             self.mLogger.Log("room created ", data);
-            self.mPersistentNode.node.emit(GameEvents.ROOM_CREATION_SUCCESS);
+            self.mPersistentNode.node.emit(GameEvents.ROOM_CREATION_SUCCESS, data);
         });
 
         socket.on(GameEvents.ROOM_JOIN_SUCCESS, function (data) {
             self.mLogger.Log("room joined ", data);
-            self.mPersistentNode.node.emit(GameEvents.ROOM_JOIN_SUCCESS);
+            self.mPersistentNode.node.emit(GameEvents.ROOM_JOIN_SUCCESS, data);
         });
 
         socket.on(GameEvents.START_GAME, function (data) {

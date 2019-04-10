@@ -12,17 +12,13 @@ const { ccclass, property } = cc._decorator;
 @ccclass
 export default class LobbyComponent extends cc.Component {
 
-    @property(cc.Label)
-    playerNameLabel: cc.Label = null;
-    @property(cc.Button)
-    playWithFriendBtn: cc.Button = null;
-    @property(cc.Button)
-    quickMatchBtn: cc.Button = null;
+    @property(cc.Label) playerNameLabel: cc.Label = null;
+    @property(cc.Button) playWithFriendBtn: cc.Button = null;
+    @property(cc.Button) quickMatchBtn: cc.Button = null;
 
     mPersistentNode: PersistentNodeComponent = null;
     mPlayerModel: PlayerModel = null;
     mLogger: Logger = null;
-
 
     start() {
         this.mLogger = new Logger("LobbyComponent");
@@ -67,7 +63,6 @@ export default class LobbyComponent extends cc.Component {
                         cc.director.loadScene(GameScenes.GAME);
                     }
                 });
-                //console.error(":::CONTEXT TIME MAXED OUT:::");
             }
         } else {
             this.InitButtons();
@@ -84,7 +79,6 @@ export default class LobbyComponent extends cc.Component {
         cc.director.preloadScene(GameScenes.GAME);
 
         FBInstant.context.chooseAsync().then(() => {
-
             let cid = FBInstant.context.getID();
             let cType = FBInstant.context.getType();
             let pName = this.mPersistentNode.GetPlayerModel().getName();
