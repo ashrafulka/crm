@@ -1,0 +1,26 @@
+[
+    {
+        "name": "bot1",
+        "id": 0,
+        "level": 1,
+        "displayName": "Jenny"
+    },
+    {
+        "name": "bot2",
+        "id": 1,
+        "level": 2,
+        "displayName": "Mark"
+    },
+    {
+        "name": "bot3",
+        "id": 2,
+        "level": 1,
+        "displayName": "Kamal"
+    },
+    {
+        "name": "bot4",
+        "id": 3,
+        "level": 2,
+        "displayName": "Rahman"
+    }
+]

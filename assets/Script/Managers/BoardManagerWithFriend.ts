@@ -62,6 +62,31 @@ export default class BoardManagerWithFriend extends cc.Component {
         }
     }
 
+    RegisterBoardManager(bm: BoardManager) {
+        this.mBoardManager = bm;
+        this.mPersistentNode = this.mBoardManager.mPersistentNode;
+        this.AttachListeners();
+    }
+
+    DeactivateAllBody() {
+        for (let index = 0; index < this.mBoardManager.mAllPawnPool.length; index++) {
+            const element = this.mBoardManager.mAllPawnPool[index];
+            element.DisablePhysics();
+        }
+        this.mBoardManager.striker.DisablePhysics();
+    }
+
+    ReactivateAllBody() {
+        for (let index = 0; index < this.mBoardManager.mAllPawnPool.length; index++) {
+            const element = this.mBoardManager.mAllPawnPool[index];
+            if (element.mIsPotted == false) {
+                element.ActivatePhysics();
+            }
+        }
+        this.mBoardManager.striker.ActivatePhysics();
+    }
+
+
     GameOver(winnerID: string) {
         let redCoveredID = "";
         for (let index = 0; index < this.mBoardManager.mPlayerPool.length; index++) {
@@ -71,21 +96,11 @@ export default class BoardManagerWithFriend extends cc.Component {
                 break;
             }
         }
-
         this.mPersistentNode.GetSocketConnection().sendGameOverReq({
             winner_id: winnerID,
             red_covered_id: redCoveredID
         });
     }
-
-    RegisterBoardManager(bm: BoardManager) {
-        this.mBoardManager = bm;
-        this.mPersistentNode = this.mBoardManager.mPersistentNode;
-        this.AttachListeners();
-
-        console.log("Attaching listeners:::");
-    }
-
 
     GetPlayerByID(id: string): Player {
         for (let index = 0; index < this.mBoardManager.mPlayerPool.length; index++) {
@@ -97,7 +112,7 @@ export default class BoardManagerWithFriend extends cc.Component {
         return null;
     }
 
-    //CALLBACKS
+    //#region  Callbacks
     OnTakeShotCallback(body: any) {
         this.mBoardManager.mUIManager.StopTimer();
     }
@@ -139,6 +154,15 @@ export default class BoardManagerWithFriend extends cc.Component {
             this.mBoardManager.mUIManager.ShowToast(2, "Red is covered by opponent!");
         }
     }//onredpotevent
+
+    OnGameOverResponseCallback(data: any) {
+        //show game over ui
+        if (data.winner_id == this.mBoardManager.myID) {
+            this.mBoardManager.mUIManager.ShowMatchEndPopup(true);
+        } else {
+            this.mBoardManager.mUIManager.ShowMatchEndPopup(false);
+        }
+    }
 
     OnSyncPawnsCallback(body: any) {
         if (body.shooter_id == this.mBoardManager.myID) { //no need to update my pawns, physics is controlling them
@@ -185,8 +209,9 @@ export default class BoardManagerWithFriend extends cc.Component {
             this.mBoardManager.striker.strikerNode.runAction(strikerMoveAction);
         }
     }
-
+    //#endregion
     // ALL Requests that are sending via socket:: =>
+    //#region  send_requests
     SendRedCoverRequest(coverId: string) {
         this.mPersistentNode.GetSocketConnection().sendRedPotCoverReq({ shooter_id: coverId });;
     }
@@ -221,7 +246,6 @@ export default class BoardManagerWithFriend extends cc.Component {
     SendPawnInfo(isLastUpdate: number, onlyStrikerUpdate = false) {
         //TODO just send the necessary pawns
         let infoJSON: any = {};
-
         if (onlyStrikerUpdate == false) {
             infoJSON.all_pawns = [];
             let whitePotCount = 0;
@@ -252,37 +276,8 @@ export default class BoardManagerWithFriend extends cc.Component {
         infoJSON.last_update = isLastUpdate;
         infoJSON.striker_pos_x = this.mBoardManager.striker.strikerNode.position.x;
         infoJSON.striker_pos_y = this.mBoardManager.striker.strikerNode.position.y;
-        // this.mWhitePotCount = whitePotCount;
-        // this.mBlackPotCount = blackPotCount;
         this.mPersistentNode.GetSocketConnection().sendPawnInfo(infoJSON);
     }
 
-    DeactivateAllBody() {
-        //console.error(":::deactivating pawn bodies:::::");
-        for (let index = 0; index < this.mBoardManager.mAllPawnPool.length; index++) {
-            const element = this.mBoardManager.mAllPawnPool[index];
-            element.DisablePhysics();
-        }
-        this.mBoardManager.striker.DisablePhysics();
-    }
-
-    ReactivateAllBody() {
-        for (let index = 0; index < this.mBoardManager.mAllPawnPool.length; index++) {
-            const element = this.mBoardManager.mAllPawnPool[index];
-            if (element.mIsPotted == false) {
-                element.ActivatePhysics();
-            }
-        }
-        this.mBoardManager.striker.ActivatePhysics();
-    }
-
-    OnGameOverResponseCallback(data: any) {
-        console.log("On game over response callback :: ", data);
-        //show game over ui
-        if (data.winner_id == this.mBoardManager.myID) {
-            this.mBoardManager.mUIManager.ShowMatchEndPopup(true);
-        } else {
-            this.mBoardManager.mUIManager.ShowMatchEndPopup(false);
-        }
-    }
+    //#endregion
 }

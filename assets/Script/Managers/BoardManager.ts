@@ -66,6 +66,9 @@ export default class BoardManager extends cc.Component {
     onLoad() {
         this.mStrikerDistanceFromMid = Math.abs(this.striker.strikerNode.getPosition().y);
         let pNode = cc.find(Constants.PERSISTENT_NODE_NAME);
+        if (pNode == null) {
+            return;
+        }
         this.mPersistentNode = pNode.getComponent(PersistentNodeComponent);
         this.mBMWithFriend = this.getComponent(BoardManagerWithFriend);
         this.myID = this.mPersistentNode.GetPlayerModel().getID();
