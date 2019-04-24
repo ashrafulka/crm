@@ -4,9 +4,11 @@ export class Constants {
     static HEROKU_WS_ADDR: string = "wss://carrom-ulka.herokuapp.com";
     static SIGNED_PLAYER_ASYNC_FLAG = "meta-data";
     static PERSISTENT_NODE_NAME = "PersistentNode";
+    static PARENT_NODE = "Canvas";
     static BOT_LOADER_NODE_NAME = "BotLoader";
     static MAX_TIME_WAIT_PER_SHOT = 35;
     static MAX_TIME_WAIT_IN_SEC: number = 125;
+    static QUICK_MATCH_ROOM_ID: string = "quick_room";
 
     static MAX_RETRY_COUNT: number = 3;
 }
@@ -31,9 +33,9 @@ export enum GameType {
 }
 
 export enum AllGameModes {
-    QUICK_MATCH = 0,
+    QUICK_MATCH = 1,
     FRIEND_1v1,
-    BOT
+    NONE
 }
 
 export class GameEvents {

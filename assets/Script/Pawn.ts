@@ -22,25 +22,15 @@ const { ccclass, property } = cc._decorator;
 @ccclass
 export default class PawnComponent extends cc.Component {
 
-    @property({ type: cc.Enum(PawnType) })
-    pawnType: PawnType = PawnType.BLACK;
+    @property({ type: cc.Enum(PawnType) }) pawnType: PawnType = PawnType.BLACK;
+    @property(cc.SpriteFrame) redSpriteFrame: cc.SpriteFrame = null;
+    @property(cc.SpriteFrame) blackSpriteFrame: cc.SpriteFrame = null;
+    @property(cc.SpriteFrame) whiteSpriteFrame: cc.SpriteFrame = null;
+    @property(cc.Label) idLabel: cc.Label = null;
 
-    @property(cc.SpriteFrame)
-    redSpriteFrame: cc.SpriteFrame = null;
-
-    @property(cc.SpriteFrame)
-    blackSpriteFrame: cc.SpriteFrame = null;
-
-    @property(cc.SpriteFrame)
-    whiteSpriteFrame: cc.SpriteFrame = null;
-
-    @property
-    mXPotCheckDistance: number = 60;
-    @property
-    mYPotCheckDistance: number = 220;
-
-    @property
-    mMinimumPotDistanceCheck: number = 0;
+    @property mXPotCheckDistance: number = 60;
+    @property mYPotCheckDistance: number = 220;
+    @property mMinimumPotDistanceCheck: number = 0;
 
     mId: number = -1;
     mIndex: number = -1;
@@ -60,6 +50,7 @@ export default class PawnComponent extends cc.Component {
 
     SetId(id: number) {
         this.mId = id;
+        this.idLabel.string = id.toString();
     }
 
     GetId(): number {
@@ -80,7 +71,6 @@ export default class PawnComponent extends cc.Component {
 
     SetPotPlayer(player: Player) {
         this.mPotPlayer = player;
-        this.mPotPlayer.AddToScore(this.pawnType == PawnType.RED ? 5 : 1);
         this.mIsPotted = true;
     }
 

@@ -18,12 +18,12 @@ export default class LoadingComponent extends cc.Component {
 
     mLogger: Logger = null;
     mPersistentNode: PersistentNodeComponent = null;
+
     onLoad() {
         this.mLogger = new Logger(this.node.name);
-        //this.labelText.string = "NATIVE: " + cc.sys.isNative;
-        this.mPersistentNode = cc.find("PersistentNode").getComponent(PersistentNodeComponent);
+        this.mPersistentNode = cc.find(Constants.PERSISTENT_NODE_NAME).getComponent(PersistentNodeComponent);
+        this.mPersistentNode.SaveAsPersistentNode();
 
-        //this.node.on(GameEvents.SUCCESS_CONNECTION, this.OnConnectionComplete, this);
         this.mPersistentNode.node.on(GameEvents.SUCCESS_LOGIN, this.OnSuccessfulLogin, this);
         this.mPersistentNode.node.on(GameEvents.FAILED_LOGIN, this.OnConnectionFailed, this);
     }
@@ -32,7 +32,7 @@ export default class LoadingComponent extends cc.Component {
         this.goToNextSceneBtn.clickEvents.push(Helper.getEventHandler(this.node, "LoadingComponent", "OnGoToNextSceneBtnClick"));
         cc.director.preloadScene('lobby');
 
-        this.mPersistentNode.GetGameState().ChangeState(States.PRE_LOAD);
+        //this.mPersistentNode.GetGameState().ChangeState();
         //Load connection, Login
         let self = this;
         let conn = new Connection(Constants.HEROKU_SRVR_ADDR);
@@ -55,7 +55,7 @@ export default class LoadingComponent extends cc.Component {
 
     OnConnectionComplete() {
         this.labelText.string = "Connecting...please wait";
-        this.mPersistentNode.GetGameState().ChangeState(States.LOGGING_IN);
+        //this.mPersistentNode.GetGameState().ChangeState(States.LOGGING_IN);
         this.mPersistentNode.LoadAndLogin();
     }
 

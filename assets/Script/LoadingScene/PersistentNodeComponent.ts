@@ -4,6 +4,7 @@ import { ConnectionStrings, GameEvents, AllGameModes, Constants } from "./Consta
 import { GameState, States } from "./GameState";
 import { GameModel } from "./GameModel";
 import { Connection, SocketConnection } from "./Connection";
+import { BotModel } from "../Managers/BotLoader";
 
 const { ccclass, property } = cc._decorator;
 
@@ -16,11 +17,15 @@ export default class PersistentNodeComponent extends cc.Component {
     private mSocketConnection: SocketConnection = null;
     private mGameState: GameState = null;
     private mCurrentGameModel: GameModel = null;
+    private mCurrentBot: BotModel = null;
 
     onLoad() {
-        cc.game.addPersistRootNode(this.node);
         this.mLogger = new Logger(this.node.name);
         this.mGameState = new GameState();
+    }
+
+    SaveAsPersistentNode() {
+        cc.game.addPersistRootNode(this.node);
     }
 
     GetGameState() {
@@ -41,6 +46,31 @@ export default class PersistentNodeComponent extends cc.Component {
 
     GetSocketConnection() {
         return this.mSocketConnection;
+    }
+
+    LoadDefaultProfile() {
+        this.mPlayer = new PlayerModel("Default", "id_default");
+        this.mPlayer.setPhotoURL("url");
+        this.mPlayer.setContextID("contextid");
+        this.mPlayer.setContextType("contextType");
+        this.mPlayer.setEntryPointData("");
+    }
+
+    LoadDefaultGameModel() {
+        let gm = new GameModel();
+        gm.SetGameMode(AllGameModes.QUICK_MATCH);
+        gm.SetInitiator(this.mPlayer.getID(), this.mPlayer.getName());
+        gm.SetRoomID(Constants.QUICK_MATCH_ROOM_ID);
+        this.mCurrentGameModel = gm;
+    }
+
+    SaveNewBot(name?: string): BotModel {
+        this.mCurrentBot = new BotModel("dBot", 1, 1, name ? name : "Modon");
+        return this.mCurrentBot;
+    }
+
+    GetCurrentBot(): BotModel {
+        return this.mCurrentBot;
     }
 
     LoadAndLogin() {

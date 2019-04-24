@@ -1,6 +1,6 @@
 import GenericPopup, { GenericPopupBtnType } from "./GenericPopup";
 import GameSceneComponent from "../Managers/GameSceneComponent";
-import { GameScenes, Constants } from "../LoadingScene/Constants";
+import { GameScenes, Constants, AllGameModes } from "../LoadingScene/Constants";
 import Helper from "../Helpers/Helper";
 import PlayerUI from "./PlayerUI";
 import { Player } from "../Player";
@@ -33,8 +33,8 @@ export default class GameUIManager extends cc.Component {
         this.matchEndOkBtn.clickEvents.push(Helper.getEventHandler(this.node, "GameUIManager", "OnMatchEndOkBtnClick"));
     }
 
-    ShowGenericPopup(msg: string, title: string, btnLabel: string, btnClick: cc.Component.EventHandler, popupType?: GenericPopupBtnType) {
-        this.genericPopup.Initialize(msg, title, btnLabel, btnClick, popupType ? popupType : null);
+    ShowGenericPopup(msg: string, title: string, btnLabel?: string, btnClick?: cc.Component.EventHandler, popupType?: GenericPopupBtnType) {
+        this.genericPopup.Initialize(msg, title, btnLabel ? btnLabel : null, btnClick ? btnClick : null, popupType ? popupType : null);
         this.genericPopup.node.active = true;
     }
 
@@ -163,7 +163,12 @@ export default class GameUIManager extends cc.Component {
             this.mCurrentRunningLabel.string = timeRemain < 0 ? "0" : timeRemain.toString();
             if (timeRemain <= 0) {
                 this.timerTracking = false;
-                this.mBoardManager.mBMWithFriend.SendTimeOutRequest();
+                if (this.mBoardManager.currentGameMode == AllGameModes.FRIEND_1v1) {
+                    this.mBoardManager.mBMWithFriend.SendTimeOutRequest();
+                } else if (this.mBoardManager.currentGameMode == AllGameModes.QUICK_MATCH) {
+                    this.mBoardManager.mIsValidPotPending = false; // is it foul??
+                    this.mBoardManager.TakeNextTurn();
+                }
             }
         } else {
             this.totalSec = 0;

@@ -3,13 +3,13 @@ const { ccclass, property } = cc._decorator;
 
 
 export class BotModel {
-    name: string = "";
-    id: number = -1;
+    mainID: string = "";
+    numID: number = -1;
     level: number = -1;
     displayName: string = "";
-    constructor(n: string, i: number, l: number, dn: string) {
-        this.name = n;
-        this.id = i;
+    constructor(mid: string, i: number, l: number, dn: string) {
+        this.mainID = mid;
+        this.numID = i;
         this.level = l;
         this.displayName = dn;
     }

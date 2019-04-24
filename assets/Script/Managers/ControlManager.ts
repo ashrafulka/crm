@@ -71,7 +71,7 @@ export default class ControlManager extends cc.Component {
             return;
         }
 
-        if (this.striker.IsStrikerPosValid(this.mBoardManager.mAllPawnPool) == false) {
+        if (this.striker.IsStrikerPosValid() == false) {
             console.log("striker position not valid");
             return;
         }
@@ -86,7 +86,7 @@ export default class ControlManager extends cc.Component {
             return;
         }
 
-        if (this.striker.IsStrikerPosValid(this.mBoardManager.mAllPawnPool) == false) {
+        if (this.striker.IsStrikerPosValid() == false) {
             return;
         }
 
@@ -129,7 +129,7 @@ export default class ControlManager extends cc.Component {
     OnSlide() {
         this.striker.OnSlide(this.controlSlider.progress);
         this.mBoardManager.mBMWithFriend.SendPawnInfo(0, true);
-        this.striker.IsStrikerPosValid(this.mBoardManager.mAllPawnPool);
+        this.striker.IsStrikerPosValid();
     }
 
     onDestroy() {

@@ -35,6 +35,10 @@ export default class Helper {
         }
     }
 
+    static ConvertRadianToDegree(rad: number): number {
+        return rad * (180 / Math.PI);
+    }
+
     static getAngle360(u: cc.Vec2, v: cc.Vec2, isRadian = true): number {
         let nu = u.normalize();
         let nv = v.normalize();

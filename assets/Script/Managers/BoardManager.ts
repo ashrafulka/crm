@@ -8,6 +8,7 @@ import GameUIManager from "../UI/GameUIManager";
 import Helper from "../Helpers/Helper";
 import { GenericPopupBtnType } from "../UI/GenericPopup";
 import BoardManagerWithFriend from "./BoardManagerWithFriend";
+import BoardManagerWithBot from "./BoardManagerWithBot";
 
 const { ccclass, property } = cc._decorator;
 
@@ -59,38 +60,36 @@ export default class BoardManager extends cc.Component {
     mAllPots: Array<PawnComponent> = [];
     mUIManager: GameUIManager = null;
     mBMWithFriend: BoardManagerWithFriend = null;
+    mBWithBot: BoardManagerWithBot = null;
+    currentGameMode: AllGameModes = AllGameModes.NONE;
 
     static MAX_PAWN_PER_TYPE_COUNT = 9;
     static IS_RED_COVERED: boolean = false;
 
     onLoad() {
         this.mStrikerDistanceFromMid = Math.abs(this.striker.strikerNode.getPosition().y);
-        let pNode = cc.find(Constants.PERSISTENT_NODE_NAME);
-        if (pNode == null) {
-            return;
-        }
-        this.mPersistentNode = pNode.getComponent(PersistentNodeComponent);
-        this.mBMWithFriend = this.getComponent(BoardManagerWithFriend);
-        this.myID = this.mPersistentNode.GetPlayerModel().getID();
+        this.mUIManager = this.getComponent(GameUIManager);
+        this.mLogger = new Logger(this.node.name);
+        this.striker.RegisterBoardManager(this);
     }
 
-    start() {
-        this.mAllPawnPool.length = 0; //reset
-        this.mLogger = new Logger(this.node.name);
-        this.mUIManager = this.getComponent(GameUIManager);
-        this.striker.RegisterBoardManager(this);
-        //TODO, detect which game model we are working with
+    RegisterPersistentNode(pn: PersistentNodeComponent) {
+        this.mPersistentNode = pn;
+        this.currentGameMode = this.mPersistentNode.GetCurrentGameModel().GetGameMode();
+        this.myID = this.mPersistentNode.GetPlayerModel().getID();
         switch (this.mPersistentNode.GetCurrentGameModel().GetGameMode()) {
             case AllGameModes.QUICK_MATCH:
                 //add quick match things
+                this.mBWithBot = this.addComponent(BoardManagerWithBot);
+                this.mBWithBot.RegisterBoardManager(this, this.mPersistentNode.GetCurrentBot());
                 break;
             case AllGameModes.FRIEND_1v1:
                 this.mBMWithFriend = this.addComponent(BoardManagerWithFriend);
+                this.mBMWithFriend.RegisterBoardManager(this);
                 break;
             default:
                 break;
         }
-        this.mBMWithFriend.RegisterBoardManager(this);
     }
 
     InitUI() {
@@ -103,13 +102,9 @@ export default class BoardManager extends cc.Component {
     }
 
     InitializeCarromBoard() {
-        if (this.mAllPawnPool.length > 0) {
-            for (let index = 0; index < this.mAllPawnPool.length; index++) {
-                this.mAllPawnPool[index].node.destroy();
-            }
-        }
+        this.mAllPawnPool.length = 0; //reset
 
-        if (this.mIsMyShot == false) { //rotate pawnholder 120 degree
+        if (this.currentGameMode == AllGameModes.FRIEND_1v1 && this.mIsMyShot == false) { //rotate pawnholder 120 degree
             this.pawnHolder.angle = 210;
         }
 
@@ -131,8 +126,8 @@ export default class BoardManager extends cc.Component {
         let currentHighestRow = 3;
 
         //Testing  values
-        // let currentHighestCol = 2;
-        // let currentHighestRow = 2;
+        //let currentHighestCol = 2;
+        //let currentHighestRow = 2;
 
         let currentType = 1;
         let toggleThreshold = 0;
@@ -180,6 +175,11 @@ export default class BoardManager extends cc.Component {
                 break;
             }
         }
+
+
+        if (this.currentGameMode == AllGameModes.QUICK_MATCH) {
+            this.mBWithBot.InitBoard();
+        }
     }
 
     Initialize1v1Players(currentTurnIndex: number) {
@@ -191,17 +191,28 @@ export default class BoardManager extends cc.Component {
     }
 
     OnStrikerHit(forceVec: cc.Vec2, magnitude: number) {
-        this.mBMWithFriend.startPawnTracking = this.mIsMyShot;
+        if (this.currentGameMode == AllGameModes.FRIEND_1v1) {
+            this.mBMWithFriend.startPawnTracking = this.mIsMyShot;
+        } else if (this.currentGameMode == AllGameModes.QUICK_MATCH) {
+            this.mBWithBot.startPawnTracking = true; //always me shooting (shooting always happening in my end)
+        }
 
         this.mIsValidPotPending = false; // release
         this.mIsMyShot = false;
-        this.mBMWithFriend.SendNewShotRequest(forceVec, magnitude);
+
+        if (this.currentGameMode == AllGameModes.FRIEND_1v1) {
+            this.mBMWithFriend.SendNewShotRequest(forceVec, magnitude);
+        }
         this.mUIManager.StopTimer();
     }
 
     ApplyTurn() {
         this.striker.GetClosePawnList(this.mIsMyShot, this.mAllPawnPool);
         this.striker.UpdateStrikerPos(this.mIsMyShot, this.mAllPawnPool);
+
+        if (this.currentGameMode == AllGameModes.QUICK_MATCH && this.mIsMyShot == false) { // bot shot
+            this.mBWithBot.TakeShot();
+        }
     }
 
     private IsBoardEmpty(): boolean {
@@ -254,7 +265,9 @@ export default class BoardManager extends cc.Component {
         }
 
         this.mLastShotPointerIndex = this.mAllPots.length;
-        this.mBMWithFriend.SendScoreUpdate();
+        if (this.currentGameMode == AllGameModes.FRIEND_1v1) {
+            this.mBMWithFriend.SendScoreUpdate();
+        }
         this.TakeNextTurn();
     }
 
@@ -317,7 +330,9 @@ export default class BoardManager extends cc.Component {
             }
         }
 
-        this.mBMWithFriend.GameOver(winnerID);
+        if (this.currentGameMode == AllGameModes.FRIEND_1v1) {
+            this.mBMWithFriend.GameOver(winnerID);
+        }
     }
 
     private TogglePawnType(ct: number) {
@@ -333,7 +348,7 @@ export default class BoardManager extends cc.Component {
         let pawnComp = pawn.getComponent(PawnComponent);
         this.mAllPawnPool.push(pawnComp);
         pawnComp.RegisterBoardManager(this);
-        pawnComp.SetId(id);
+        pawnComp.SetId(this.mAllPawnPool.length - 1);
         pawnComp.SetIndex(this.mAllPawnPool.length - 1);
         pawn.setParent(this.pawnHolder);
     }
@@ -353,10 +368,30 @@ export default class BoardManager extends cc.Component {
         }
     }
 
+    GetPlayerByID(id: string): Player {
+        for (let index = 0; index < this.mPlayerPool.length; index++) {
+            const player = this.mPlayerPool[index];
+            if (player.GetID() == id) {
+                return player;
+            }
+        }
+        return null;
+    }
+
     RegisterPot(pawn: PawnComponent) {
         pawn.SetPotPlayer(this.mPlayerPool[this.mCurrentTurnIndex]);
+        if (pawn.GetPawnType() == PawnType.RED) {
+            this.GetPlayerByID(this.myID).AddToScore(5);
+        } else if (pawn.GetPawnType() == this.mPlayerPool[this.mCurrentTurnIndex].GetCurrentPawnType()) {
+            this.GetPlayerByID(this.myID).AddToScore(1);
+        } else {
+            this.GetPlayerByID(this.GetOpponentId()).AddToScore(1);
+        }
+
         this.mAllPots.push(pawn);
-        this.mBMWithFriend.SendScoreUpdate();
+        if (this.currentGameMode == AllGameModes.FRIEND_1v1) {
+            this.mBMWithFriend.SendScoreUpdate();
+        }
         this.mUIManager.UpdateScore();
     }//registerPot
 
@@ -390,10 +425,10 @@ export default class BoardManager extends cc.Component {
         }
 
         //==2//TODO is striker is pot, commit foul
-        //console.log("Evaluating board::");
+
         //==3, no new pot
         if (this.mLastShotPointerIndex >= this.mAllPots.length) {
-            console.log("NO NEW POT HAPPENED===", this.mAllPots.length);
+            console.log("NO NEW POT HAPPENED::", this.mAllPots.length);
             bState = BoardState.NO_POT;
             this.mIsValidPotPending = false;
             if (this.mIsRedPotCoverPending) {
@@ -452,7 +487,10 @@ export default class BoardManager extends cc.Component {
                         myPlayer.RedCover();
                         bState = BoardState.RED_COVERED;
                         this.mIsRedPotCoverPending = false;
-                        this.mBMWithFriend.SendRedCoverRequest(this.myID);
+
+                        if (this.currentGameMode == AllGameModes.FRIEND_1v1) {
+                            this.mBMWithFriend.SendRedCoverRequest(this.myID);
+                        }
                     }
 
                     if (myPot == false && bState != BoardState.RED_COVERED) {
@@ -487,13 +525,24 @@ export default class BoardManager extends cc.Component {
         }
 
         this.mIsValidPotPending = (bState == BoardState.VALID_POT || bState == BoardState.RED_COVERED || bState == BoardState.RED_POT);
-        console.log("is valid pot::?? " + this.mIsValidPotPending + ", state:: " + bState);
+        //console.log("is valid pot::?? " + this.mIsValidPotPending + ", state:: " + bState);
         this.mLastShotPointerIndex = this.mAllPots.length;
         this.TakeNextTurn();
     }
 
     TakeNextTurn() {
-        let chosenID = this.mIsValidPotPending ? this.myID : this.GetOpponentId();
-        this.mBMWithFriend.SendNextTurnUpdate(chosenID);
+        if (this.currentGameMode == AllGameModes.FRIEND_1v1) {
+            let chosenID = this.mIsValidPotPending ? this.myID : this.GetOpponentId();
+            this.mBMWithFriend.SendNextTurnUpdate(chosenID);
+        } else if (this.currentGameMode == AllGameModes.QUICK_MATCH) {
+            let chosenID = "";
+            //toggle 
+            if (this.mIsValidPotPending) {
+                chosenID = this.mCurrentTurnIndex == 0 ? this.myID : this.GetOpponentId();
+            } else {
+                chosenID = this.mCurrentTurnIndex == 0 ? this.GetOpponentId() : this.myID;
+            }
+            this.mBWithBot.OnNextTurnCallback(chosenID);
+        }
     }
 }

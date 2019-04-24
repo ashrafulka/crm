@@ -86,7 +86,6 @@ export default class BoardManagerWithFriend extends cc.Component {
         this.mBoardManager.striker.ActivatePhysics();
     }
 
-
     GameOver(winnerID: string) {
         let redCoveredID = "";
         for (let index = 0; index < this.mBoardManager.mPlayerPool.length; index++) {
@@ -100,16 +99,6 @@ export default class BoardManagerWithFriend extends cc.Component {
             winner_id: winnerID,
             red_covered_id: redCoveredID
         });
-    }
-
-    GetPlayerByID(id: string): Player {
-        for (let index = 0; index < this.mBoardManager.mPlayerPool.length; index++) {
-            const player = this.mBoardManager.mPlayerPool[index];
-            if (player.GetID() == id) {
-                return player;
-            }
-        }
-        return null;
     }
 
     //#region  Callbacks
@@ -147,7 +136,7 @@ export default class BoardManagerWithFriend extends cc.Component {
     }
 
     OnRedCoverEventCallback(body) {
-        this.GetPlayerByID(body.shooter_id).RedCover();
+        this.mBoardManager.GetPlayerByID(body.shooter_id).RedCover();
         if (body.shooter_id == this.mBoardManager.myID) { //my shot
             this.mBoardManager.mUIManager.ShowToast(2, "Red Covered Successfully!");
         } else {
