@@ -5,11 +5,24 @@ import Striker from "../Striker";
 import BotGizmo from "../Helpers/BotGizmo";
 import Helper from "../Helpers/Helper";
 
-class BotPawnComponent {
+export class StrikerHitPointCombo {
+    strikerWorldPos: cc.Vec2;
+    hitPointWorldPos: cc.Vec2;
+    pocketPos: cc.Vec2;
+    angle: number;
+
+    constructor(sws: cc.Vec2, hpwp: cc.Vec2, pocket: cc.Vec2, angle: number) {
+        this.strikerWorldPos = sws;
+        this.hitPointWorldPos = hpwp;
+        this.pocketPos = pocket;
+        this.angle = angle;
+    }
+}
+
+class BotPawn {
 
     localPawn: PawnComponent = null;
     pocketPositions: Array<cc.Vec2> = [];
-    hitPoints: Array<cc.Vec2> = [];
     hitPointDistanceFromCenter: number = 0;
     worldPos: cc.Vec2 = null;
     gizmo: BotGizmo = null;
@@ -18,7 +31,7 @@ class BotPawnComponent {
     strikerBoundaryLocal: cc.Vec2 = null;
     striker: Striker = null;
 
-    hitPointStrikerPositions: Array<cc.Vec2> = [];
+    hitPointStrikerPositions: Array<StrikerHitPointCombo> = [];
 
     constructor(pawn: PawnComponent, striker: Striker, potPos: Array<cc.Node>, gizmo: BotGizmo) {
         this.localPawn = pawn;
@@ -26,7 +39,7 @@ class BotPawnComponent {
             const element = potPos[index].parent.convertToWorldSpaceAR(potPos[index].position);
             this.pocketPositions.push(element);
         }
-        this.hitPointDistanceFromCenter = this.localPawn.mPhysicsCollider.radius + striker.mPhysicsComponent.radius;
+        this.hitPointDistanceFromCenter = this.localPawn.mPhysicsCollider.radius + (striker.mPhysicsComponent.radius * 0.99);
         this.gizmo = gizmo;
         this.striker = striker;
         this.strikerWorldPosition = striker.node.parent.convertToWorldSpaceAR(new cc.Vec2(0, striker.mStrikerDistanceFromMid));
@@ -36,7 +49,7 @@ class BotPawnComponent {
     }
 
     RecalculateOptimalPositions() {
-        this.hitPoints.length = 0;
+        this.hitPointStrikerPositions.length = 0;
         this.gizmo.gg.clear();
         this.worldPos = this.localPawn.node.parent.convertToWorldSpaceAR(this.localPawn.node.position);
         const compareVec = new cc.Vec2(1, 0);
@@ -49,39 +62,78 @@ class BotPawnComponent {
 
             const hitPointX = this.worldPos.x + this.hitPointDistanceFromCenter * Math.cos(angleInRads);
             const hitPointY = this.worldPos.y + this.hitPointDistanceFromCenter * Math.sin(angleInRads);
+
+            let hitPoint = new cc.Vec2(hitPointX, hitPointY);
+
             const strikerHitPos1 = new cc.Vec2(hitPointX, this.strikerWorldPosition.y);
             let strikerHitPos2 = cc.Vec2.ZERO;
 
+            let color: cc.Color = null;
+            let potName: string = "";
+
             switch (index) {
                 case 0: //left top
+                    color = cc.Color.BLACK;
+                    potName = "left top";
                     strikerHitPos2 = this.striker.node.parent.convertToWorldSpaceAR(new cc.Vec2(this.strikerBoundaryLocal.x, this.strikerBoundaryLocal.y));
                     break;
                 case 1: //left bot
+                    color = cc.Color.WHITE;
+                    potName = "left bot";
                     strikerHitPos2 = this.striker.node.parent.convertToWorldSpaceAR(new cc.Vec2(this.strikerBoundaryLocal.x, this.strikerBoundaryLocal.y));
                     break;
                 case 2: // right top
+                    color = cc.Color.YELLOW;
+                    potName = "right top";
                     strikerHitPos2 = this.striker.node.parent.convertToWorldSpaceAR(new cc.Vec2(-this.strikerBoundaryLocal.x, this.strikerBoundaryLocal.y));
                     break;
                 case 3: // right bot
+                    color = cc.Color.GREEN;
+                    potName = "right bot";
                     strikerHitPos2 = this.striker.node.parent.convertToWorldSpaceAR(new cc.Vec2(-this.strikerBoundaryLocal.x, this.strikerBoundaryLocal.y));
                     break;
             }
 
+            let finalStrikerPos = this.striker.FindValidStrikerPosBetweenTwoPoints(strikerHitPos1, strikerHitPos2, new cc.Vec2(hitPointX, this.strikerWorldPosition.y));
+            if (finalStrikerPos == null) {
+                continue;
+            }
 
+            let v1 = hitPoint.sub(finalStrikerPos);
+            let v2 = hitPoint.sub(pocket);
 
-            if (index == 0) {
-                let finalStrikerPos = this.striker.FindValidStrikerPosBetweenTwoPoints(strikerHitPos1, strikerHitPos2, new cc.Vec2(hitPointX, this.strikerWorldPosition.y));
-                this.hitPointStrikerPositions.push(finalStrikerPos);
-                console.log("final striker position :: ", finalStrikerPos, this.striker.strikerNode.convertToNodeSpaceAR(finalStrikerPos));
-                //this.striker.strikerNode.setPosition(this.striker.strikerNode.convertToNodeSpaceAR(finalStrikerPos));
-                this.gizmo.DrawCircle(finalStrikerPos, 10, false, cc.Color.BLACK);
-                this.gizmo.DrawCircle(strikerHitPos1, 5, false);
-                this.gizmo.DrawCircle(strikerHitPos2, 5, false);
-                this.gizmo.DrawCircle(new cc.Vec2(hitPointX, hitPointY), 2, false);
-                this.gizmo.DrawCircle(pocket, 10, false);
+            let angleWithPocket = Helper.getAngle(v1, v2, false);
+
+            console.log("::", potName, " ::", angleWithPocket);
+
+            if (angleWithPocket > 115) {
+                this.hitPointStrikerPositions.push(new StrikerHitPointCombo(finalStrikerPos, hitPoint, pocket, angleWithPocket));
+            }
+            this.gizmo.DrawCircle(hitPoint, 5, false, color);
+            this.gizmo.DrawCircle(finalStrikerPos, 5, false, color);
+        }
+
+        console.log("========", this.localPawn.GetId());
+    }
+
+    FindBestCombo(): StrikerHitPointCombo {
+        this.RecalculateOptimalPositions();
+
+        if (this.hitPointStrikerPositions.length == 0) {
+            return null;
+        }
+
+        let bestIndex = 0;
+        let bestAngle = 0;
+        for (let index = 0; index < this.hitPointStrikerPositions.length; index++) {
+            const element = this.hitPointStrikerPositions[index];
+            if (element.angle > bestAngle) {
+                bestAngle = element.angle;
+                bestIndex = index;
             }
         }
-        //this.gizmo.DrawCircle(this.worldPos, 2, false);
+
+        return this.hitPointStrikerPositions[bestIndex];
     }
 }//BotPawnComponent
 
@@ -90,6 +142,7 @@ const { ccclass, property } = cc._decorator;
 @ccclass
 export default class BoardManagerWithBot extends cc.Component {
 
+    static FORCE_AMOUNT: number = 850;
     mBoardManager: BoardManager = null;
     botProfile: BotModel = null;
     startPawnTracking: boolean = false;
@@ -98,7 +151,7 @@ export default class BoardManagerWithBot extends cc.Component {
     striker: Striker = null;
     botPawnType: PawnType;
 
-    allBotPawns: Array<BotPawnComponent> = [];
+    allBotPawns: Array<BotPawn> = [];
     gizmo: BotGizmo = null;
 
     RegisterBoardManager(bm: BoardManager, bot: BotModel) {
@@ -112,78 +165,74 @@ export default class BoardManagerWithBot extends cc.Component {
     }
 
     InitBoard() {
-        //console.log("INIT BOARD MAN WITH BOT");
-        let self = this;
-        this.scheduleOnce(function () {
-            self.allBotPawns.length = 0;
-            for (let index = 0; index < self.mBoardManager.mAllPawnPool.length; index++) {
-                const element = self.mBoardManager.mAllPawnPool[index];
-                if (element.pawnType == PawnType.RED || element.pawnType == this.botPawnType) {
-                    // self.allBotPawns.push(new BotPawnComponent(element,
-                    //     self.mBoardManager.striker, self.mBoardManager.pockets, self.gizmo));
-                }
-
-                self.allBotPawns.push(new BotPawnComponent(element,
-                    self.mBoardManager.striker, self.mBoardManager.pockets, self.gizmo));
-
-                if (index == 0) {
-                    break;
-                }
-            }
-        }, 1);
+        this.RefreshBotPawns();
     }
 
-    GameOver() {
+    private RefreshBotPawns() {
+        this.allBotPawns.length = 0;
+        for (let index = 0; index < this.mBoardManager.mAllPawnPool.length; index++) {
+            const element = this.mBoardManager.mAllPawnPool[index];
+            if (element.mIsPotted == false && (element.pawnType == PawnType.RED || element.pawnType == this.botPawnType)) {
+                this.allBotPawns.push(new BotPawn(element,
+                    this.mBoardManager.striker, this.mBoardManager.pockets, this.gizmo));
+            }
+        }
 
+        //level 1, choose random position
+        // for (let index = 0; index < this.allBotPawns.length; index++) {
+        //     const element = this.allBotPawns[index];
+        //     element.RecalculateOptimalPositions();
+
+        //     if (index == 0) {
+        //         break;
+        //     }
+        // }
+    }
+
+    GameOver(winnerid: string) {
+        this.mBoardManager.mUIManager.ShowMatchEndPopup(winnerid == this.mBoardManager.mPlayerPool[0].GetID());
     }//gameover
 
     TakeShot() {
         console.log(":::TAKING SHOT BOT at :::", this.mBoardManager.mPlayerPool[1].GetCurrentPawnTypeString());
+        this.RefreshBotPawns();
 
         let time = 2;
         let self = this;
         this.scheduleOnce(function () {
             self.ExecuteShot();
         }, time);
-
-        this.scheduleOnce(function () {
-            self.startPawnTracking = true;
-        }, time + 10);
     }//takeshot
 
 
-    private ExecuteShot() { //level 1, choose random position
-        for (let index = 0; index < this.allBotPawns.length; index++) {
-            const element = this.allBotPawns[index];
-            console.log("Recalculating");
-            element.RecalculateOptimalPositions();
-        }
+    private ExecuteShot() {
+        let bestComboPos: StrikerHitPointCombo = null;
+        let traverseCount = 0;
+        while (bestComboPos == null) {
+            let randomPawnIndex = Math.floor(Math.random() * (this.allBotPawns.length));
+            let pawnSelected: BotPawn = this.allBotPawns[randomPawnIndex];
 
-        let sPosX = Math.random() * this.strikerXSpanHalf;
-        //choose random pawn
-        let randomPawnPool = [];
-        for (let index = 0; index < this.mBoardManager.mAllPawnPool.length; index++) {
-            const element = this.mBoardManager.mAllPawnPool[index];
-            //console.log("elemnt : ", element.node.position);
-            if (element.mIsPotted == false && this.botPawnType == element.pawnType) {
-                randomPawnPool.push(element);
+            traverseCount++;
+            if (traverseCount > 100) { //safety check
+                console.warn("NO valid pawn found which can be potted:: ", this.allBotPawns.length);
+                bestComboPos = new StrikerHitPointCombo(this.striker.node.convertToWorldSpaceAR(this.striker.strikerNode.getPosition()),
+                    pawnSelected.localPawn.node.parent.convertToWorldSpaceAR(pawnSelected.localPawn.node.getPosition()), cc.Vec2.ZERO, 0);
+                break;
             }
+            bestComboPos = pawnSelected.FindBestCombo();
         }
 
-        //choose random position x
-        let randomPawnIndex = Math.floor(Math.random() * (randomPawnPool.length));
-        let pawnSelected: PawnComponent = randomPawnPool[randomPawnIndex];
-        console.log("random pawn index:: ", pawnSelected.GetId());
+        this.striker.strikerNode.setPosition(this.striker.node.convertToNodeSpaceAR(bestComboPos.strikerWorldPos));
+        const direction = bestComboPos.hitPointWorldPos.sub(bestComboPos.strikerWorldPos).normalize();
+        const strength = Helper.getDistance(bestComboPos.strikerWorldPos, bestComboPos.pocketPos);
 
-        let pawnPosWorld = pawnSelected.node.parent.convertToWorldSpaceAR(pawnSelected.node.position);//.sub(new cc.Vec2(this.striker.strikerNode.position.x, this.striker.strikerNode.position.y));
-        let strikerPosWorld = this.striker.node.convertToWorldSpaceAR(this.striker.strikerNode.position);
+        this.gizmo.DrawLine(bestComboPos.hitPointWorldPos, bestComboPos.strikerWorldPos);
 
-        let direction = pawnPosWorld.sub(strikerPosWorld);
-
-        console.log("direction ", direction);
-        //make a shot into that direction with random force
-        //this.striker.ApplyForce(direction, 500);
-        //this.startPawnTracking = true;
+        let self = this;
+        this.scheduleOnce(function () {
+            self.striker.ApplyForce(direction.mul(strength), BoardManagerWithBot.FORCE_AMOUNT);
+            self.startPawnTracking = true;
+        }, 1);
     }
 
     RedCover() {
@@ -194,8 +243,7 @@ export default class BoardManagerWithBot extends cc.Component {
         if (this.mBoardManager.mIsGameOver) {
             return;
         }
-
-        console.log("On next turn :: ");
+        // console.log("On next turn :: ");
         this.mBoardManager.mCurrentTurnIndex = (next_turn_id == this.mBoardManager.myID) ? 0 : 1;
         this.mBoardManager.mIsMyShot = (next_turn_id == this.mBoardManager.myID); //take off control from player
 

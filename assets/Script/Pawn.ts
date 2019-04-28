@@ -1,6 +1,7 @@
 import { Player } from "./Player";
 import BoardManager from "./Managers/BoardManager";
 import Helper from "./Helpers/Helper";
+import { AllGameModes } from "./LoadingScene/Constants";
 
 export enum PawnType {
     NONE = 99,
@@ -44,8 +45,17 @@ export default class PawnComponent extends cc.Component {
     vanishSchedule = null;
 
     onLoad() {
-        this.mRigidBody = this.getComponent(cc.RigidBody);
-        this.mPhysicsCollider = this.getComponent(cc.PhysicsCircleCollider);
+        this.mRigidBody = this.node.getComponent(cc.RigidBody);
+        this.mPhysicsCollider = this.node.getComponent(cc.PhysicsCircleCollider);
+        this.mRigidBody.allowSleep = false;
+    }
+
+    start() {
+        this.DisablePhysics();
+        let self = this;
+        this.scheduleOnce(function () {
+            self.ActivatePhysics();
+        }, 1);
     }
 
     SetId(id: number) {
@@ -69,12 +79,20 @@ export default class PawnComponent extends cc.Component {
         return this.mPotPlayer;
     }
 
-    SetPotPlayer(player: Player) {
+    SetPotPlayer(player: Player, opponent: Player) {
         this.mPotPlayer = player;
         this.mIsPotted = true;
+        if (this.GetPawnType() == PawnType.RED) {
+            this.mPotPlayer.AddToScore(5);
+        } else if (this.GetPawnType() == this.mPotPlayer.GetCurrentPawnType()) {
+            this.mPotPlayer.AddToScore(1);
+        } else {
+            opponent.AddToScore(1);
+        }
     }
 
     FoulRespawn() {
+        console.log("foul respawning :: " + this.GetId());
         if (this.mPotPlayer) {
             this.mPotPlayer.AddToScore(this.pawnType == PawnType.RED ? -5 : -1);
         }
@@ -84,9 +102,9 @@ export default class PawnComponent extends cc.Component {
         if (this.vanishSchedule) {
             clearInterval(this.vanishSchedule);
         }
+        this.node.active = true;
         this.node.stopAllActions();
         this.node.setScale(1);
-        this.node.active = true;
         this.ActivatePhysics();
     }
 
@@ -95,7 +113,8 @@ export default class PawnComponent extends cc.Component {
         this.RegisterPockets(this.mBoardManager.pockets);
     }
 
-    RegisterPockets(ap: Array<cc.Node>) {
+    private RegisterPockets(ap: Array<cc.Node>) {
+        console.log("Registering pockets:::");
         for (let index = 0; index < ap.length; index++) {
             this.mAllPocketPositions.push(new cc.Vec2(ap[index].getPosition().x, ap[index].getPosition().y));
         }
@@ -137,7 +156,6 @@ export default class PawnComponent extends cc.Component {
             this.DisablePhysics();
             this.mBoardManager.RegisterPot(this);
             let scaleTo = cc.scaleTo(0.1, 0.7, 0.7);
-            //let fadeTo = cc.fadeOut(0.1);
             this.node.runAction(scaleTo);
             this.DeactiveAfter(0.2);
         }
@@ -169,20 +187,21 @@ export default class PawnComponent extends cc.Component {
     DeactiveAfter(duration: number) {
         var self = this;
         this.vanishSchedule = this.scheduleOnce(function () {
-            console.log("Deactivating id:: ", this.mId);
+            //console.log("Deactivating id:: ", this.mId);
             self.node.active = false;
         }, duration);
     }
 
     DisablePhysics() {
+        //console.log("disabling physics ", this.GetId());
         this.mRigidBody.linearVelocity = cc.Vec2.ZERO;
         this.mPhysicsCollider.enabled = false;
         this.mRigidBody.active = false;
     }
 
     ActivatePhysics() {
+        //console.log("activating physics : " + this.GetId());
         this.mRigidBody.active = true;
         this.mPhysicsCollider.enabled = true;
-        this.mRigidBody.allowSleep = false;
     }
 }

@@ -133,10 +133,10 @@ export default class Striker extends cc.Component {
             counter++;
             if (counter % 2 == 0) {//right
                 cursor.x = midX + (counter / 2) * span;
-                cursor.x = cursor.x > rightBorder.x ? rightBorder.x : cursor.x;
+                cursor.x = cursor.x >= rightBorder.x ? rightBorder.x : cursor.x;
             } else { //left
                 cursor.x = midX - (((counter + 1 / 2)) * span);
-                cursor.x = cursor.x < leftBorder.x ? leftBorder.x : cursor.x;
+                cursor.x = cursor.x <= leftBorder.x ? leftBorder.x : cursor.x;
             }
 
             this.strikerNode.setPosition(this.strikerNode.parent.convertToNodeSpaceAR(cursor));
@@ -144,7 +144,7 @@ export default class Striker extends cc.Component {
                 break;
             }
 
-            if (counter > 100) { //safety check
+            if (counter > 50) { //safety check
                 return null;
             }
         }
@@ -153,7 +153,7 @@ export default class Striker extends cc.Component {
 
     IsStrikerPosValid(): boolean {
         //console.log("current total threats :: ", this.closePawnIndexList.length);
-        let worldPosStriker = this.mBoardManager.node.convertToWorldSpaceAR(this.strikerNode.position);
+        let worldPosStriker = this.node.convertToWorldSpaceAR(this.strikerNode.position);
         const dangerDistance = this.mPhysicsComponent.radius + this.mBoardManager.mAllPawnPool[0].mPhysicsCollider.radius;
 
         for (let index = 0; index < this.closePawnIndexList.length; index++) {

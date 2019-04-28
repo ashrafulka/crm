@@ -68,23 +68,7 @@ export default class BoardManagerWithFriend extends cc.Component {
         this.AttachListeners();
     }
 
-    DeactivateAllBody() {
-        for (let index = 0; index < this.mBoardManager.mAllPawnPool.length; index++) {
-            const element = this.mBoardManager.mAllPawnPool[index];
-            element.DisablePhysics();
-        }
-        this.mBoardManager.striker.DisablePhysics();
-    }
 
-    ReactivateAllBody() {
-        for (let index = 0; index < this.mBoardManager.mAllPawnPool.length; index++) {
-            const element = this.mBoardManager.mAllPawnPool[index];
-            if (element.mIsPotted == false) {
-                element.ActivatePhysics();
-            }
-        }
-        this.mBoardManager.striker.ActivatePhysics();
-    }
 
     GameOver(winnerID: string) {
         let redCoveredID = "";
@@ -125,9 +109,9 @@ export default class BoardManagerWithFriend extends cc.Component {
         this.mBoardManager.mIsMyShot = (next_turn_id == this.mBoardManager.myID); //take off control from player
 
         if (this.mBoardManager.mIsMyShot) {
-            this.ReactivateAllBody();
+            this.mBoardManager.ReactivateAllBody();
         } else {
-            this.DeactivateAllBody();
+            this.mBoardManager.DeactivateAllBody();
         }
 
         this.mBoardManager.StartShotTimer();

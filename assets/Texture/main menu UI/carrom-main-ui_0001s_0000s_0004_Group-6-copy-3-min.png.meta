@@ -1,0 +1,32 @@
+{
+  "ver": "2.3.0",
+  "uuid": "2f4aa302-b356-4559-8f81-ca5896194214",
+  "type": "sprite",
+  "wrapMode": "clamp",
+  "filterMode": "bilinear",
+  "premultiplyAlpha": false,
+  "platformSettings": {},
+  "subMetas": {
+    "carrom-main-ui_0001s_0000s_0004_Group-6-copy-3-min": {
+      "ver": "1.0.3",
+      "uuid": "f3f50256-6bb9-4c2e-9771-64fe8704ac46",
+      "rawTextureUuid": "2f4aa302-b356-4559-8f81-ca5896194214",
+      "trimType": "auto",
+      "trimThreshold": 1,
+      "rotated": false,
+      "offsetX": -0.5,
+      "offsetY": -0.5,
+      "trimX": 1,
+      "trimY": 1,
+      "width": 203,
+      "height": 205,
+      "rawWidth": 206,
+      "rawHeight": 206,
+      "borderTop": 0,
+      "borderBottom": 0,
+      "borderLeft": 0,
+      "borderRight": 0,
+      "subMetas": {}
+    }
+  }
+}

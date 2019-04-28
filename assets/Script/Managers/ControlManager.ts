@@ -5,6 +5,7 @@ import { Player } from "../Player";
 import BoardManager from "./BoardManager";
 import PersistentNodeComponent from "../LoadingScene/PersistentNodeComponent";
 import { Logger } from "../LoadingScene/Logger";
+import { AllGameModes } from "../LoadingScene/Constants";
 
 const { ccclass, property, executionOrder } = cc._decorator;
 
@@ -118,8 +119,8 @@ export default class ControlManager extends cc.Component {
         let forceVector = this.mStrikerCenter.sub(Helper.getTouchPointOnCirlce(this.mStrikerCenter, radius, touch.getLocation()));
         let magnitude = forceVector.mag();
 
-        this.striker.ApplyForce(new cc.Vec2(forceVector.x * -1, forceVector.y * -1), magnitude * this.fixForceAmount);
-        this.mBoardManager.OnStrikerHit(new cc.Vec2(forceVector.x, forceVector.y), magnitude * this.fixForceAmount);
+        this.striker.ApplyForce(forceVector.mul(-2), magnitude * this.fixForceAmount);
+        this.mBoardManager.OnStrikerHit(forceVector.mul(-2), magnitude * this.fixForceAmount);
 
         this.gizmosComp.myGraphicsNode.clear();
         this.mIsTouchStarted = false;
@@ -128,7 +129,9 @@ export default class ControlManager extends cc.Component {
 
     OnSlide() {
         this.striker.OnSlide(this.controlSlider.progress);
-        this.mBoardManager.mBMWithFriend.SendPawnInfo(0, true);
+        if (this.mBoardManager.currentGameMode == AllGameModes.FRIEND_1v1) {
+            this.mBoardManager.mBMWithFriend.SendPawnInfo(0, true);
+        }
         this.striker.IsStrikerPosValid();
     }
 

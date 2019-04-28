@@ -208,9 +208,9 @@ export default class BoardManager extends cc.Component {
 
     ApplyTurn() {
         this.striker.GetClosePawnList(this.mIsMyShot, this.mAllPawnPool);
-        this.striker.UpdateStrikerPos(this.mIsMyShot, this.mAllPawnPool);
+        this.striker.UpdateStrikerPos(this.mIsMyShot);
 
-        if (this.currentGameMode == AllGameModes.QUICK_MATCH && this.mIsMyShot == false) { // bot shot
+        if (this.currentGameMode == AllGameModes.QUICK_MATCH && this.mIsMyShot == false) {
             this.mBWithBot.TakeShot();
         }
     }
@@ -224,7 +224,7 @@ export default class BoardManager extends cc.Component {
     }
 
     private CommitFoul(ft: FoulTypes) {
-        console.error("FOULED ::: ");
+        //console.error("FOULED ::: ");
         this.mLastShotPointerIndex = this.mAllPots.length; //updating pots
         switch (ft) {
             case FoulTypes.STRIKER_POT:
@@ -267,6 +267,8 @@ export default class BoardManager extends cc.Component {
         this.mLastShotPointerIndex = this.mAllPots.length;
         if (this.currentGameMode == AllGameModes.FRIEND_1v1) {
             this.mBMWithFriend.SendScoreUpdate();
+        } else if (this.currentGameMode == AllGameModes.QUICK_MATCH) {
+            this.mUIManager.UpdateScore();
         }
         this.TakeNextTurn();
     }
@@ -276,7 +278,7 @@ export default class BoardManager extends cc.Component {
             console.log("No pots yet, so no foul");
             return;
         }
-        //console.error("FOUL RESPAWN::: ", pt, count);
+        console.error("FOUL RESPAWN::: ", this.mAllPots);
         let totalRespawned = 0;
         for (let index = this.mAllPots.length - 1; index >= 0; index--) {
             const element = this.mAllPots[index];
@@ -322,7 +324,6 @@ export default class BoardManager extends cc.Component {
             }
         } else {
             let winType = blackPotCount >= BoardManager.MAX_PAWN_PER_TYPE_COUNT ? PawnType.BLACK : PawnType.WHITE;
-            //console.log("wintype:::: ", winType);
             if (this.mPlayerPool[0].GetCurrentPawnType() == winType) {
                 winnerID = this.mPlayerPool[0].GetID();
             } else {
@@ -332,6 +333,8 @@ export default class BoardManager extends cc.Component {
 
         if (this.currentGameMode == AllGameModes.FRIEND_1v1) {
             this.mBMWithFriend.GameOver(winnerID);
+        } else if (this.currentGameMode == AllGameModes.QUICK_MATCH) {
+            this.mBWithBot.GameOver(winnerID);
         }
     }
 
@@ -379,14 +382,8 @@ export default class BoardManager extends cc.Component {
     }
 
     RegisterPot(pawn: PawnComponent) {
-        pawn.SetPotPlayer(this.mPlayerPool[this.mCurrentTurnIndex]);
-        if (pawn.GetPawnType() == PawnType.RED) {
-            this.GetPlayerByID(this.myID).AddToScore(5);
-        } else if (pawn.GetPawnType() == this.mPlayerPool[this.mCurrentTurnIndex].GetCurrentPawnType()) {
-            this.GetPlayerByID(this.myID).AddToScore(1);
-        } else {
-            this.GetPlayerByID(this.GetOpponentId()).AddToScore(1);
-        }
+        pawn.SetPotPlayer(this.mPlayerPool[this.mCurrentTurnIndex],
+            this.mPlayerPool[(this.mCurrentTurnIndex + 1) % this.mPlayerPool.length]);
 
         this.mAllPots.push(pawn);
         if (this.currentGameMode == AllGameModes.FRIEND_1v1) {
@@ -424,7 +421,7 @@ export default class BoardManager extends cc.Component {
             return;
         }
 
-        //==2//TODO is striker is pot, commit foul
+        //==2 is striker is pot, commit foul
 
         //==3, no new pot
         if (this.mLastShotPointerIndex >= this.mAllPots.length) {
@@ -435,13 +432,13 @@ export default class BoardManager extends cc.Component {
                 this.mIsRedPotCoverPending = false;
                 this.CommitFoul(FoulTypes.RED_COVER_FAILED);
             }
-            this.TakeNextTurn();
+            //this.TakeNextTurn();
             return;
         }
 
         //==4 new pot, check the pots
-        let myPlayer = this.mPlayerPool[this.mCurrentTurnIndex];
-        let otherPlayer = this.mPlayerPool[(this.mCurrentTurnIndex + 1) % this.mPlayerPool.length];
+        let currentPlayer = this.mPlayerPool[this.mCurrentTurnIndex]; //this.GetPlayerByID(this.myID);
+        let otherPlayer = this.mPlayerPool[(this.mCurrentTurnIndex + 1) % this.mPlayerPool.length]; //this.GetPlayerByID(this.GetOpponentId());  //this.mPlayerPool[(this.mCurrentTurnIndex + 1) % this.mPlayerPool.length];
 
         let totalWhitePots = 0;
         let totalBlackPots = 0;
@@ -455,7 +452,9 @@ export default class BoardManager extends cc.Component {
             }
         }
 
-        console.log("TOTAL POTS: Black, white", totalBlackPots, totalWhitePots);
+        console.log("current player ::: ", currentPlayer.GetName());
+        console.log("other player ;:: ", otherPlayer.GetName());
+        //console.log("TOTAL POTS: Black, white", totalBlackPots, totalWhitePots);
         if (totalBlackPots >= BoardManager.MAX_PAWN_PER_TYPE_COUNT || totalWhitePots >= BoardManager.MAX_PAWN_PER_TYPE_COUNT) {
             if (BoardManager.IS_RED_COVERED) {
                 //console.log("GAME ENDED DUE TO NO POT AVAILABLE FOR A CERTAIN PLAYER & RED IS COVERED");
@@ -471,7 +470,7 @@ export default class BoardManager extends cc.Component {
             bState = BoardState.NONE;
             for (let index = this.mLastShotPointerIndex; index < this.mAllPots.length; index++) {
                 let element = this.mAllPots[index];
-                let myPot = myPlayer.GetCurrentPawnType() == element.GetPawnType() ? true : false;
+                let myPot = currentPlayer.GetCurrentPawnType() == element.GetPawnType() ? true : false;
                 if (myPot) {
                     bState = BoardState.VALID_POT;
                 }
@@ -482,9 +481,9 @@ export default class BoardManager extends cc.Component {
                 console.log("PENDING RED COVER CHECK :: ");
                 for (let index = this.mLastShotPointerIndex; index < this.mAllPots.length; index++) {
                     let element = this.mAllPots[index];
-                    let myPot = myPlayer.GetCurrentPawnType() == element.GetPawnType() ? true : false;
+                    let myPot = currentPlayer.GetCurrentPawnType() == element.GetPawnType() ? true : false;
                     if (myPot) {
-                        myPlayer.RedCover();
+                        currentPlayer.RedCover();
                         bState = BoardState.RED_COVERED;
                         this.mIsRedPotCoverPending = false;
 
@@ -504,12 +503,13 @@ export default class BoardManager extends cc.Component {
                     if (element.GetPawnType() == PawnType.RED) {
                         this.mIsRedPotCoverPending = true;
                         bState = BoardState.RED_POT;
+                        //TODO
                         this.mUIManager.ShowToast(2, "Now Give cover of red");
                     } else {
-                        console.log("LOCAL PLAYER:: ", myPlayer.GetName());
+                        console.log("LOCAL PLAYER:: ", currentPlayer.GetName());
                         console.log("OTHER PLAYER:: ", otherPlayer.GetName());
 
-                        let myPot = myPlayer.GetCurrentPawnType() == element.GetPawnType() ? true : false;
+                        let myPot = currentPlayer.GetCurrentPawnType() == element.GetPawnType() ? true : false;
                         if (myPot) {
                             bState = BoardState.VALID_POT;
                         }
@@ -525,9 +525,27 @@ export default class BoardManager extends cc.Component {
         }
 
         this.mIsValidPotPending = (bState == BoardState.VALID_POT || bState == BoardState.RED_COVERED || bState == BoardState.RED_POT);
-        //console.log("is valid pot::?? " + this.mIsValidPotPending + ", state:: " + bState);
+        console.log("is valid pot::?? " + this.mIsValidPotPending + ", state:: " + bState, "red cover :: ", this.mIsRedPotCoverPending);
         this.mLastShotPointerIndex = this.mAllPots.length;
         this.TakeNextTurn();
+    }
+
+    DeactivateAllBody() {
+        for (let index = 0; index < this.mAllPawnPool.length; index++) {
+            const element = this.mAllPawnPool[index];
+            element.DisablePhysics();
+        }
+        this.striker.DisablePhysics();
+    }
+
+    ReactivateAllBody() {
+        for (let index = 0; index < this.mAllPawnPool.length; index++) {
+            const element = this.mAllPawnPool[index];
+            if (element.mIsPotted == false) {
+                element.ActivatePhysics();
+            }
+        }
+        this.striker.ActivatePhysics();
     }
 
     TakeNextTurn() {
