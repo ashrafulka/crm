@@ -187,7 +187,7 @@ export default class BoardManager extends cc.Component {
     }
 
     StartShotTimer() {
-        this.mUIManager.InitTimer(this.mIsMyShot ? this.myID : this.GetOpponentId());
+        this.mUIManager.StartTimer(this.mIsMyShot ? this.myID : this.GetOpponentId());
     }
 
     OnStrikerHit(forceVec: cc.Vec2, magnitude: number) {

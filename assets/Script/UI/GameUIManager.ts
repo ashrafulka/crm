@@ -6,6 +6,7 @@ import PlayerUI from "./PlayerUI";
 import { Player } from "../Player";
 import BoardManager from "../Managers/BoardManager";
 import WaitingPanelComponent from "./WaitingPanelComponent";
+import ControlManager from "../Managers/ControlManager";
 
 const { ccclass, property } = cc._decorator;
 
@@ -24,10 +25,15 @@ export default class GameUIManager extends cc.Component {
     @property(cc.Node) waitPanel: cc.Node = null;
 
     mPlayerList: Array<Player> = [];
+    controlManager: ControlManager = null;
 
     timerTracking: boolean = false;
     mCurrentRunningLabel: cc.Label = null;
     mBoardManager: BoardManager = null;
+
+    onLoad() {
+        this.controlManager = this.getComponent(ControlManager);
+    }
 
     start() {
         this.matchEndOkBtn.clickEvents.push(Helper.getEventHandler(this.node, "GameUIManager", "OnMatchEndOkBtnClick"));
@@ -49,11 +55,12 @@ export default class GameUIManager extends cc.Component {
     ShowWaitPanel() {
         let self = this;
         this.waitPanel.active = true;
-        this.waitPanel.getComponent(WaitingPanelComponent).initialize(Constants.MAX_TIME_WAIT_IN_SEC, function () { //failed to connect
+        this.waitPanel.getComponent(WaitingPanelComponent).initialize(Constants.MAX_TIME_WAIT_IN_SEC, function () {
+            //failed to connect
             self.waitPanel.active = false;
             self.waitPanel.getComponent(WaitingPanelComponent).clear();
             self.ShowGenericPopup(
-                "Failed to connect to server. Sorry for the inconveniences. We will fix it asap.",
+                "Failed to connect to server. Sorry for the inconveniences. We will fix it soon.",
                 "Error",
                 "Go Back",
                 Helper.getEventHandler(self.node, "GameSceneComponent", "OnServerErrorAck"),
@@ -97,7 +104,8 @@ export default class GameUIManager extends cc.Component {
         console.log("Re-match button click");
     }
 
-    InitializePlayerNodes(p0: Player, p1: Player) { // this serial will be put by board manager, 0=me, 1 = other player
+    InitializePlayerNodes(p0: Player, p1: Player) {
+        // this serial will be put by board manager, 0=me, 1 = other player
         this.mPlayerList.length = 0;
         this.mPlayerList.push(p0);
         this.mPlayerList.push(p1);
@@ -131,18 +139,21 @@ export default class GameUIManager extends cc.Component {
         this.toastNode.runAction(cc.sequence(firstScale, delay, lastScale));
     }
 
-    InitTimer(shooterID: string) {
+    StartTimer(shooterID: string) {
         //console.log("Initializing timer");
         if (shooterID == this.mPlayerList[0].GetID()) {//myshot
             this.playerUIList[0].timerImage.node.active = true;
             this.mCurrentRunningLabel = this.playerUIList[0].timerLabel;
 
             this.playerUIList[1].timerImage.node.active = false;
+            this.controlManager.ShowSlider();
         } else { // opponent shot
             this.playerUIList[1].timerImage.node.active = true;
             this.mCurrentRunningLabel = this.playerUIList[1].timerLabel;
 
             this.playerUIList[0].timerImage.node.active = false;
+            this.controlManager.HideSlider();
+            //this.controlManager.controlSlider.node.active = false;
         }
 
         this.mCurrentRunningLabel.string = Constants.MAX_TIME_WAIT_PER_SHOT + "s";

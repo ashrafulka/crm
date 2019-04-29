@@ -122,8 +122,6 @@ export default class Striker extends cc.Component {
             rightBorder = p1;
         }
 
-        //console.log("left border :: ", leftBorder, "right border :: ", rightBorder);
-
         let midX = (leftBorder.x + rightBorder.x) / 2;
         let cursor: cc.Vec2 = new cc.Vec2(midX, leftBorder.y);
         let span = 5;

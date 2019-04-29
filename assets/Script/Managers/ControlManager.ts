@@ -7,7 +7,7 @@ import PersistentNodeComponent from "../LoadingScene/PersistentNodeComponent";
 import { Logger } from "../LoadingScene/Logger";
 import { AllGameModes } from "../LoadingScene/Constants";
 
-const { ccclass, property, executionOrder } = cc._decorator;
+const { ccclass, property } = cc._decorator;
 
 @ccclass
 export default class ControlManager extends cc.Component {
@@ -36,10 +36,6 @@ export default class ControlManager extends cc.Component {
         cc.director.getCollisionManager().enabled = true;
 
         this.controlSlider.slideEvents.push(Helper.getEventHandler(this.node, "ControlManager", "OnSlide"));
-        //this.nextTurnBtn.clickEvents.push(Helper.getEventHandler(this.node, "ControlManager", "OnNextTurnBtnClick"));
-
-        //cc.systemEvent.on(cc.SystemEvent.EventType.KEY_DOWN, this.OnKeyDown, this);
-
         this.striker.strikerNode.on(cc.Node.EventType.TOUCH_START, this.OnStrickerTouchStart.bind(this));
         this.striker.strikerNode.on(cc.Node.EventType.TOUCH_MOVE, this.OnStrickerDrag.bind(this));
         this.striker.strikerNode.on(cc.Node.EventType.TOUCH_END, this.OnStrikerDragEnd.bind(this));
@@ -124,7 +120,7 @@ export default class ControlManager extends cc.Component {
 
         this.gizmosComp.myGraphicsNode.clear();
         this.mIsTouchStarted = false;
-        this.controlSlider.enabled = true;
+        this.HideSlider();
     }
 
     OnSlide() {
@@ -133,6 +129,16 @@ export default class ControlManager extends cc.Component {
             this.mBoardManager.mBMWithFriend.SendPawnInfo(0, true);
         }
         this.striker.IsStrikerPosValid();
+    }
+
+    ShowSlider() {
+        this.controlSlider.node.active = true;
+        this.controlSlider.progress = 0.5;
+        this.controlSlider.enabled = true;
+    }
+
+    HideSlider() {
+        this.controlSlider.node.active = false;
     }
 
     onDestroy() {

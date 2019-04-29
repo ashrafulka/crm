@@ -50,14 +50,6 @@ export default class PawnComponent extends cc.Component {
         this.mRigidBody.allowSleep = false;
     }
 
-    start() {
-        this.DisablePhysics();
-        let self = this;
-        this.scheduleOnce(function () {
-            self.ActivatePhysics();
-        }, 1);
-    }
-
     SetId(id: number) {
         this.mId = id;
         this.idLabel.string = id.toString();
@@ -114,18 +106,11 @@ export default class PawnComponent extends cc.Component {
     }
 
     private RegisterPockets(ap: Array<cc.Node>) {
-        console.log("Registering pockets:::");
+        //console.log("Registering pockets:::");
         for (let index = 0; index < ap.length; index++) {
             this.mAllPocketPositions.push(new cc.Vec2(ap[index].getPosition().x, ap[index].getPosition().y));
         }
     }
-
-    // onEnable() {
-    //     console.log("ENABLE ID :: ", this.GetId());
-    // }//onenable
-    // onDisable() {
-    //     console.log("DISABLE ID :: ", this.GetId());
-    // }//ondisable
 
     update(dt) {
         if (this.mIsPotted) {
