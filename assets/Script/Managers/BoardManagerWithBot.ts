@@ -39,7 +39,7 @@ class BotPawn {
             const element = potPos[index].parent.convertToWorldSpaceAR(potPos[index].position);
             this.pocketPositions.push(element);
         }
-        this.hitPointDistanceFromCenter = this.localPawn.mPhysicsCollider.radius + (striker.mPhysicsComponent.radius * 0.99);
+        this.hitPointDistanceFromCenter = this.localPawn.mPhysicsCollider.radius + (striker.mPhysicsComponent.radius);
         this.gizmo = gizmo;
         this.striker = striker;
         this.strikerWorldPosition = striker.node.parent.convertToWorldSpaceAR(new cc.Vec2(0, striker.mStrikerDistanceFromMid));
@@ -60,8 +60,9 @@ class BotPawn {
             let angle2 = Helper.ConvertRadianToDegree(angleInRads);
             angle2 = angle2 < 0 ? 360 + angle2 : angle2;
 
-            const hitPointX = this.worldPos.x + this.hitPointDistanceFromCenter * Math.cos(angleInRads);
-            const hitPointY = this.worldPos.y + this.hitPointDistanceFromCenter * Math.sin(angleInRads);
+            const randomizeFactor = Math.random() * (1 - 0.8) + 0.8;
+            const hitPointX = this.worldPos.x + (this.hitPointDistanceFromCenter * randomizeFactor) * Math.cos(angleInRads);
+            const hitPointY = this.worldPos.y + (this.hitPointDistanceFromCenter * randomizeFactor) * Math.sin(angleInRads);
 
             let hitPoint = new cc.Vec2(hitPointX, hitPointY);
 
@@ -108,9 +109,9 @@ class BotPawn {
 
             if (angleWithPocket > 115) {
                 this.hitPointStrikerPositions.push(new StrikerHitPointCombo(finalStrikerPos, hitPoint, pocket, angleWithPocket));
+                this.gizmo.DrawCircle(hitPoint, 5, false, color);
+                this.gizmo.DrawCircle(finalStrikerPos, 5, false, color);
             }
-            this.gizmo.DrawCircle(hitPoint, 5, false, color);
-            this.gizmo.DrawCircle(finalStrikerPos, 5, false, color);
         }
 
         console.log("========", this.localPawn.GetId());

@@ -172,7 +172,6 @@ export default class PawnComponent extends cc.Component {
     DeactiveAfter(duration: number) {
         var self = this;
         this.vanishSchedule = this.scheduleOnce(function () {
-            //console.log("Deactivating id:: ", this.mId);
             self.node.active = false;
         }, duration);
     }

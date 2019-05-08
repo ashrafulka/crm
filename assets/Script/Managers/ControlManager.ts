@@ -68,7 +68,7 @@ export default class ControlManager extends cc.Component {
             return;
         }
 
-        if (this.striker.IsStrikerPosValid() == false) {
+        if (this.striker.IsOverlappingWithPawn() == false) {
             console.log("striker position not valid");
             return;
         }
@@ -83,7 +83,7 @@ export default class ControlManager extends cc.Component {
             return;
         }
 
-        if (this.striker.IsStrikerPosValid() == false) {
+        if (this.striker.IsOverlappingWithPawn() == false) {
             return;
         }
 
@@ -107,6 +107,7 @@ export default class ControlManager extends cc.Component {
     }
 
     OnStrikerDragEnd(event: cc.Event.EventTouch) {
+        this.controlSlider.enabled = true;
         if (this.mIsTouchStarted == false) return;
 
         let touch = event.getTouches()[0];
@@ -128,7 +129,7 @@ export default class ControlManager extends cc.Component {
         if (this.mBoardManager.currentGameMode == AllGameModes.FRIEND_1v1) {
             this.mBoardManager.mBMWithFriend.SendPawnInfo(0, true);
         }
-        this.striker.IsStrikerPosValid();
+        this.striker.IsOverlappingWithPawn();
     }
 
     ShowSlider() {

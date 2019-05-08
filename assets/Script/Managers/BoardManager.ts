@@ -207,8 +207,8 @@ export default class BoardManager extends cc.Component {
     }
 
     ApplyTurn() {
-        this.striker.GetClosePawnList(this.mIsMyShot, this.mAllPawnPool);
         this.striker.UpdateStrikerPos(this.mIsMyShot);
+        this.striker.GetClosePawnList(this.mIsMyShot, this.mAllPawnPool);
 
         if (this.currentGameMode == AllGameModes.QUICK_MATCH && this.mIsMyShot == false) {
             this.mBWithBot.TakeShot();
@@ -216,7 +216,7 @@ export default class BoardManager extends cc.Component {
     }
 
     private IsBoardEmpty(): boolean {
-        return (this.mAllPots.length >= BoardManager.MAX_PAWN_PER_TYPE_COUNT * 2);
+        return (this.mAllPots.length >= ((BoardManager.MAX_PAWN_PER_TYPE_COUNT * 2) + 1));
     }
 
     OnDrawPopupCallback() { //todo
@@ -431,8 +431,9 @@ export default class BoardManager extends cc.Component {
             if (this.mIsRedPotCoverPending) {
                 this.mIsRedPotCoverPending = false;
                 this.CommitFoul(FoulTypes.RED_COVER_FAILED);
+            } else {
+                this.TakeNextTurn();
             }
-            //this.TakeNextTurn();
             return;
         }
 

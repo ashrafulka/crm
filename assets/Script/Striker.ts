@@ -101,9 +101,12 @@ export default class Striker extends cc.Component {
         //search for potential pawns that can conflict with striker position
         for (let index = 0; index < allPawnPool.length; index++) {
             const element = allPawnPool[index];
+            if (element.mIsPotted) {
+                continue;
+            }
             const worldPos = element.node.parent.convertToWorldSpaceAR(element.node.position);
             if (worldPos.y >= worldPosMin.y && worldPos.y <= worldPosMax.y) {
-                //console.log("adding threats::");
+                console.log("adding threats:: ", element.GetId());
                 this.closePawnIndexList.push(index);
             }
         }
@@ -123,6 +126,7 @@ export default class Striker extends cc.Component {
         }
 
         let midX = (leftBorder.x + rightBorder.x) / 2;
+        console.log("midx : ", midX, leftBorder.x, rightBorder.x);
         let cursor: cc.Vec2 = new cc.Vec2(midX, leftBorder.y);
         let span = 5;
         let counter = 0;
@@ -130,6 +134,7 @@ export default class Striker extends cc.Component {
         while (true) {
             counter++;
             if (counter % 2 == 0) {//right
+
                 cursor.x = midX + (counter / 2) * span;
                 cursor.x = cursor.x >= rightBorder.x ? rightBorder.x : cursor.x;
             } else { //left
@@ -138,7 +143,7 @@ export default class Striker extends cc.Component {
             }
 
             this.strikerNode.setPosition(this.strikerNode.parent.convertToNodeSpaceAR(cursor));
-            if (this.IsStrikerPosValid()) {//TODO, check for obstacles via raycast
+            if (this.IsOverlappingWithPawn()) {
                 break;
             }
 
@@ -149,7 +154,7 @@ export default class Striker extends cc.Component {
         return cursor;
     }
 
-    IsStrikerPosValid(): boolean {
+    IsOverlappingWithPawn(): boolean {
         //console.log("current total threats :: ", this.closePawnIndexList.length);
         let worldPosStriker = this.node.convertToWorldSpaceAR(this.strikerNode.position);
         const dangerDistance = this.mPhysicsComponent.radius + this.mBoardManager.mAllPawnPool[0].mPhysicsCollider.radius;
@@ -171,20 +176,21 @@ export default class Striker extends cc.Component {
         const startPosY = isMyShot ? -this.mStrikerDistanceFromMid : this.mStrikerDistanceFromMid;
         this.strikerNode.setPosition(0, startPosY);
 
-        let startPosX = this.mPhysicsComponent.radius;
+        let startPosX = 0;
         let counter = 0;
-        //TODO reduce span = radius,
-        while (!this.IsStrikerPosValid()) {
+        const span = 5; //this.mPhysicsComponent.radius;
+
+        while (!this.IsOverlappingWithPawn()) {
             counter++;
             if (counter % 2 == 0) { //check right
-                startPosX = (counter / 2) * this.mPhysicsComponent.radius;
+                startPosX = (counter / 2) * span;
             } else { //check left
-                startPosX = -((counter + 1) / 2) * this.mPhysicsComponent.radius;
+                startPosX = -((counter + 1) / 2) * span;
             }
             this.strikerNode.setPosition(startPosX, startPosY);
 
             if (counter > 100) { //safety check
-                this.IsStrikerPosValid(); //to show the indicators
+                this.IsOverlappingWithPawn(); //to show the indicators
                 break;
             }
         }

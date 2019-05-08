@@ -41,9 +41,9 @@
     },
     "_scale": {
       "__type__": "cc.Vec3",
-      "x": 0.4621945795587744,
-      "y": 0.4621945795587744,
-      "z": 0.4621945795587744
+      "x": 0.54853515625,
+      "y": 0.54853515625,
+      "z": 0.54853515625
     },
     "_quat": {
       "__type__": "cc.Quat",
@@ -1427,7 +1427,7 @@
       }
     ],
     "_prefab": null,
-    "_opacity": 255,
+    "_opacity": 147,
     "_color": {
       "__type__": "cc.Color",
       "r": 255,
@@ -1512,10 +1512,10 @@
     "duration": 0.1,
     "zoomScale": 1.2,
     "clickEvents": [],
-    "_N$interactable": true,
+    "_N$interactable": false,
     "_N$enableAutoGrayEffect": false,
-    "_N$transition": 3,
-    "transition": 3,
+    "_N$transition": 1,
+    "transition": 1,
     "_N$normalColor": {
       "__type__": "cc.Color",
       "r": 255,
@@ -1528,14 +1528,14 @@
       "r": 255,
       "g": 255,
       "b": 255,
-      "a": 255
+      "a": 221
     },
     "pressedColor": {
       "__type__": "cc.Color",
       "r": 255,
       "g": 255,
       "b": 255,
-      "a": 255
+      "a": 221
     },
     "_N$hoverColor": {
       "__type__": "cc.Color",
@@ -1556,7 +1556,7 @@
       "r": 255,
       "g": 255,
       "b": 255,
-      "a": 255
+      "a": 147
     },
     "_N$normalSprite": {
       "__uuid__": "8f07d476-c82e-4b22-b2c7-d8058630853e"
